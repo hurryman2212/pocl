@@ -441,11 +441,49 @@ free_meta (cl_program program)
   program->num_kernels = 0;
 }
 
+/* Retarget borrowed public entries before their owning slot can be freed.
+ * This in-place projection cannot fail when rebuilding the full view runs out
+ * of memory. Unselected executable slots remain usable after that failure. */
+static void
+detach_public_metadata (cl_program program, unsigned removed)
+{
+  const pocl_program_device_state *owner = &program->device_states[removed];
+  size_t retained = 0;
+  for (size_t entry = 0; entry < program->num_kernels; ++entry)
+    {
+      pocl_kernel_metadata_t *view = &program->kernel_meta[entry];
+      int owned = 0;
+      for (size_t kernel = 0; kernel < owner->num_kernels; ++kernel)
+        if (view->name == owner->kernel_meta[kernel].name)
+          owned = 1;
+      const pocl_kernel_metadata_t *replacement = owned ? NULL : view;
+      for (unsigned device = 0;
+           owned && !replacement && device < program->num_devices; ++device)
+        {
+          if (device == removed
+              || !pocl_program_device_executable (program, device))
+            continue;
+          const pocl_program_device_state *state
+              = &program->device_states[device];
+          for (size_t kernel = 0; kernel < state->num_kernels; ++kernel)
+            if (strcmp (state->kernel_meta[kernel].name, view->name) == 0)
+              {
+                replacement = &state->kernel_meta[kernel];
+                break;
+              }
+        }
+      if (replacement)
+        program->kernel_meta[retained++] = *replacement;
+    }
+  program->num_kernels = retained;
+}
+
 static cl_int
 clear_program_device (cl_program program, unsigned index)
 {
   pocl_program_device_state *state = &program->device_states[index];
   cl_device_id device = program->devices[index];
+  detach_public_metadata (program, index);
   pocl_kernel_metadata_t *saved = program->kernel_meta;
   size_t saved_count = program->num_kernels;
   program->kernel_meta = state->kernel_meta;
@@ -949,8 +987,8 @@ compile_and_link_program_body (
   POCL_MEM_FREE (program->original_options);
   POCL_MEM_FREE (program->compiler_options);
   program->original_options = original;
-  program->compiler_options = normalized;
-  original = normalized = NULL;
+  program->compiler_options = NULL;
+  original = NULL;
   cl_int first_error = CL_SUCCESS;
   for (unsigned index = 0; index < program->num_devices; ++index)
     {
@@ -958,15 +996,21 @@ compile_and_link_program_body (
         continue;
       pocl_program_device_state *state = &program->device_states[index];
       char *slot_options = program->original_options ? strdup (program->original_options) : NULL;
-      char *slot_compiler_options = strdup (program->compiler_options ? program->compiler_options : "");
-      if ((program->original_options && !slot_options) || !slot_compiler_options)
+      char *slot_compiler_options = strdup (normalized);
+      char *active_compiler_options = strdup (normalized);
+      if ((program->original_options && !slot_options)
+          || !slot_compiler_options || !active_compiler_options)
         {
           free (slot_options);
           free (slot_compiler_options);
+          free (active_compiler_options);
           if (first_error == CL_SUCCESS)
             first_error = CL_OUT_OF_HOST_MEMORY;
           continue;
         }
+      POCL_MEM_FREE (program->compiler_options);
+      program->compiler_options = active_compiler_options;
+      selected[index] = 2;
       program->active_build_device = index;
       program->binary_type = state->binary_type;
       program->flush_denorms = state->flush_denorms;
@@ -1017,6 +1061,7 @@ compile_and_link_program_body (
       cl_int status = rebuild_public_metadata (program, selected, &conflict);
       if (status == CL_INVALID_KERNEL_DEFINITION && conflict != CL_UINT_MAX)
         {
+          detach_public_metadata (program, conflict);
           program->device_states[conflict].status = CL_BUILD_ERROR;
           program->device_states[conflict].binary_type = CL_PROGRAM_BINARY_TYPE_NONE;
           append_to_build_log (program, conflict, "Incompatible kernel definition for this device.\n");
@@ -1024,8 +1069,22 @@ compile_and_link_program_body (
             first_error = status;
           continue;
         }
-      if (status != CL_SUCCESS && first_error == CL_SUCCESS)
-        first_error = status;
+      if (status != CL_SUCCESS)
+        {
+          /* A new executable is not published until its canonical view is
+           * complete. Preserve only the slots this build did not replace. */
+          for (unsigned index = 0; index < program->num_devices; ++index)
+            if (selected[index] == 2
+                && program->device_states[index].status == CL_BUILD_SUCCESS)
+              {
+                detach_public_metadata (program, index);
+                program->device_states[index].status = CL_BUILD_ERROR;
+                program->device_states[index].binary_type
+                    = CL_PROGRAM_BINARY_TYPE_NONE;
+              }
+          if (first_error == CL_SUCCESS)
+            first_error = status;
+        }
       break;
     }
   program->build_status = CL_BUILD_NONE;
