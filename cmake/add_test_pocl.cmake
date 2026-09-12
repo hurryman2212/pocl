@@ -1,56 +1,55 @@
-#=============================================================================
-#   CMake build system files - add_test_pocl() etc. test wrappers
+# =============================================================================
+# CMake build system files - add_test_pocl() etc. test wrappers
 #
-#   Copyright (c) 2014-2017 pocl developers
-#                 2024-2025 Pekka Jääskeläinen / Intel Finland Oy
+# Copyright (c) 2014-2017 pocl developers 2024-2025 Pekka Jääskeläinen / Intel
+# Finland Oy
 #
-#   Permission is hereby granted, free of charge, to any person obtaining a copy
-#   of this software and associated documentation files (the "Software"), to deal
-#   in the Software without restriction, including without limitation the rights
-#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#   copies of the Software, and to permit persons to whom the Software is
-#   furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-#   The above copyright notice and this permission notice shall be included in
-#   all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-#   THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
-#=============================================================================
+# =============================================================================
 
 include(CMakeParseArguments)
 
-# This is a wrapper around add_test
-# Solves several problems:
-# 1) allows expected outputs (optionally sorted)
-# 2) handles the exit status problem (test properties WILL_FAIL does not work if
-#    the test exits with !0 exit status)
+# This is a wrapper around add_test Solves several problems: 1) allows expected
+# outputs (optionally sorted) 2) handles the exit status problem (test
+# properties WILL_FAIL does not work if the test exits with !0 exit status)
 #
 # If LLVM_FILECHECK is set to an existing FileCheck file, an additional test
 # will be added that runs the test with the LLVM IR tester script using the
 # loopvec method.
 #
 # If ONLY_FILECHECK is set to 1, the test is only added as an LLVM IR filecheck
-# which runs the program and validates the parallel.bc IR. Otherwrise, if LLVM_FILECHECK
-# is given, the execution test is added also separately.
+# which runs the program and validates the parallel.bc IR. Otherwrise, if
+# LLVM_FILECHECK is given, the execution test is added also separately.
 #
-# LABELS can be used to add labels as a semicolon separated list.
-# By default no labels are added and the test is expected to pass with host CPUs.
-# Use tags such as cpu_fail, mingw_fail, win_fail to mark tests that are expected
-# to fail on targets/platforms where they are expected to pass by default.
+# LABELS can be used to add labels as a semicolon separated list. By default no
+# labels are added and the test is expected to pass with host CPUs. Use tags
+# such as cpu_fail, mingw_fail, win_fail to mark tests that are expected to fail
+# on targets/platforms where they are expected to pass by default.
 #
 # WORKITEM_HANDLER can be set to a list of WG handlers to test with. Otherwise,
 # "loopvec" and "cbs" are tested.
 function(add_test_pocl)
 
   set(options SORT_OUTPUT)
-  set(oneValueArgs EXPECTED_OUTPUT NAME WORKING_DIRECTORY LLVM_FILECHECK ONLY_FILECHECK ENVIRONMENT)
+  set(oneValueArgs EXPECTED_OUTPUT NAME WORKING_DIRECTORY LLVM_FILECHECK
+                   ONLY_FILECHECK ENVIRONMENT)
   set(multiValueArgs COMMAND WORKITEM_HANDLER LABELS)
   cmake_parse_arguments(POCL_TEST "${options}" "${oneValueArgs}"
                         "${multiValueArgs}" ${ARGN})
@@ -97,48 +96,53 @@ function(add_test_pocl)
       list(APPEND POCL_TEST_ARGLIST "${POCL_TEST_WORKING_DIRECTORY}")
     endif()
 
-    list(APPEND POCL_TEST_ARGLIST "COMMAND" "${CMAKE_COMMAND}" "-Dtest_cmd=${RUN_CMD}")
+    list(APPEND POCL_TEST_ARGLIST "COMMAND" "${CMAKE_COMMAND}"
+         "-Dtest_cmd=${RUN_CMD}")
     if(INTEL_SDE_AVX512)
       list(APPEND POCL_TEST_ARGLIST "-DSDE=${INTEL_SDE_AVX512}")
     endif()
 
     if(POCL_TEST_EXPECTED_OUTPUT)
-      if (NOT IS_ABSOLUTE "${POCL_TEST_EXPECTED_OUTPUT}")
-        set(POCL_TEST_EXPECTED_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/${POCL_TEST_EXPECTED_OUTPUT}")
+      if(NOT IS_ABSOLUTE "${POCL_TEST_EXPECTED_OUTPUT}")
+        set(POCL_TEST_EXPECTED_OUTPUT
+            "${CMAKE_CURRENT_SOURCE_DIR}/${POCL_TEST_EXPECTED_OUTPUT}")
       endif()
       list(APPEND POCL_TEST_ARGLIST
-        "-Doutput_blessed=${POCL_TEST_EXPECTED_OUTPUT}")
+           "-Doutput_blessed=${POCL_TEST_EXPECTED_OUTPUT}")
     endif()
     if(POCL_TEST_SORT_OUTPUT)
       list(APPEND POCL_TEST_ARGLIST "-Dsort_output=1")
     endif()
-    list(APPEND POCL_TEST_ARGLIST "-P" "${CMAKE_SOURCE_DIR}/cmake/run_test.cmake")
+    list(APPEND POCL_TEST_ARGLIST "-P"
+         "${CMAKE_SOURCE_DIR}/cmake/run_test.cmake")
 
     if(NOT POCL_TEST_ONLY_FILECHECK)
       add_test(${POCL_TEST_ARGLIST})
 
       if(NOT ENABLE_ANYSAN)
-        set_tests_properties("${POCL_VARIANT_TEST_NAME}" PROPERTIES
-          PASS_REGULAR_EXPRESSION "OK"
-          FAIL_REGULAR_EXPRESSION "FAIL")
+        set_tests_properties(
+          "${POCL_VARIANT_TEST_NAME}" PROPERTIES PASS_REGULAR_EXPRESSION "OK"
+                                                 FAIL_REGULAR_EXPRESSION "FAIL")
       endif()
-      set_tests_properties("${POCL_VARIANT_TEST_NAME}" PROPERTIES
-        SKIP_RETURN_CODE 77)
+      set_tests_properties("${POCL_VARIANT_TEST_NAME}"
+                           PROPERTIES SKIP_RETURN_CODE 77)
       if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
-        set_tests_properties("${POCL_VARIANT_TEST_NAME}" PROPERTIES
-          SKIP_REGULAR_EXPRESSION "SKIP")
+        set_tests_properties("${POCL_VARIANT_TEST_NAME}"
+                             PROPERTIES SKIP_REGULAR_EXPRESSION "SKIP")
       endif()
 
-      set_tests_properties("${POCL_VARIANT_TEST_NAME}" PROPERTIES
-        ENVIRONMENT POCL_WORK_GROUP_METHOD=${VARIANT})
+      set_tests_properties(
+        "${POCL_VARIANT_TEST_NAME}"
+        PROPERTIES ENVIRONMENT POCL_WORK_GROUP_METHOD=${VARIANT})
 
-      set_tests_properties("${POCL_VARIANT_TEST_NAME}" PROPERTIES
-        LABELS "${POCL_TEST_LABELS}")
+      set_tests_properties("${POCL_VARIANT_TEST_NAME}"
+                           PROPERTIES LABELS "${POCL_TEST_LABELS}")
     endif()
 
-
     if(ENABLE_LLVM_FILECHECKS AND POCL_TEST_LLVM_FILECHECK)
-      set(RUN_CMD "${CMAKE_SOURCE_DIR}/tools/scripts/run-and-check-llvm-ir####${TARGET_LLVM_FILECHECK}####${TARGET_LLVM_DIS}####${CMAKE_CURRENT_SOURCE_DIR}/${POCL_TEST_LLVM_FILECHECK}####${RUN_CMD}")
+      set(RUN_CMD
+          "${CMAKE_SOURCE_DIR}/tools/scripts/run-and-check-llvm-ir####${TARGET_LLVM_FILECHECK}####${TARGET_LLVM_DIS}####${CMAKE_CURRENT_SOURCE_DIR}/${POCL_TEST_LLVM_FILECHECK}####${RUN_CMD}"
+      )
 
       set(POCL_TEST_IR_CHECK_NAME "${POCL_VARIANT_TEST_NAME}_llvm-ir-checks")
       set(POCL_TEST_ARGLIST "NAME" ${POCL_TEST_IR_CHECK_NAME})
@@ -146,21 +150,30 @@ function(add_test_pocl)
         list(APPEND POCL_TEST_ARGLIST "WORKING_DIRECTORY")
         list(APPEND POCL_TEST_ARGLIST "${POCL_TEST_WORKING_DIRECTORY}")
       endif()
-      list(APPEND POCL_TEST_ARGLIST "COMMAND" "${CMAKE_COMMAND}" "-Dtest_cmd=${RUN_CMD}")
-      list(APPEND POCL_TEST_ARGLIST "-P" "${CMAKE_SOURCE_DIR}/cmake/run_test.cmake")
+      list(APPEND POCL_TEST_ARGLIST "COMMAND" "${CMAKE_COMMAND}"
+           "-Dtest_cmd=${RUN_CMD}")
+      list(APPEND POCL_TEST_ARGLIST "-P"
+           "${CMAKE_SOURCE_DIR}/cmake/run_test.cmake")
 
       add_test(${POCL_TEST_ARGLIST})
 
-      set_tests_properties(${POCL_TEST_IR_CHECK_NAME} PROPERTIES
-                          PASS_REGULAR_EXPRESSION "OK"
-                          FAIL_REGULAR_EXPRESSION "FAIL"
-                          SKIP_RETURN_CODE 77
-                          ENVIRONMENT "POCL_WORK_GROUP_METHOD=${VARIANT};${POCL_TEST_ENVIRONMENT}"
-                          LABELS "${POCL_TEST_LABELS}"
-                          DEPENDS "pocl_version_check")
+      set_tests_properties(
+        ${POCL_TEST_IR_CHECK_NAME}
+        PROPERTIES PASS_REGULAR_EXPRESSION
+                   "OK"
+                   FAIL_REGULAR_EXPRESSION
+                   "FAIL"
+                   SKIP_RETURN_CODE
+                   77
+                   ENVIRONMENT
+                   "POCL_WORK_GROUP_METHOD=${VARIANT};${POCL_TEST_ENVIRONMENT}"
+                   LABELS
+                   "${POCL_TEST_LABELS}"
+                   DEPENDS
+                   "pocl_version_check")
       if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.16)
-        set_tests_properties("${POCL_TEST_IR_CHECK_NAME}" PROPERTIES
-          SKIP_REGULAR_EXPRESSION "SKIP")
+        set_tests_properties("${POCL_TEST_IR_CHECK_NAME}"
+                             PROPERTIES SKIP_REGULAR_EXPRESSION "SKIP")
       endif()
 
     endif()

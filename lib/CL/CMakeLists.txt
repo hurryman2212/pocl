@@ -1,27 +1,27 @@
-#=============================================================================
-#   CMake build system files
+# =============================================================================
+# CMake build system files
 #
-#   Copyright (c) 2014-2024 pocl developers
+# Copyright (c) 2014-2024 pocl developers
 #
-#   Permission is hereby granted, free of charge, to any person obtaining a copy
-#   of this software and associated documentation files (the "Software"), to deal
-#   in the Software without restriction, including without limitation the rights
-#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#   copies of the Software, and to permit persons to whom the Software is
-#   furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-#   The above copyright notice and this permission notice shall be included in
-#   all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-#   THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
-#=============================================================================
+# =============================================================================
 
 include_directories(AFTER "devices" ".")
 
@@ -31,210 +31,233 @@ endif()
 
 add_subdirectory("devices")
 
-###############################################################################
+# ##############################################################################
 
-set(POCL_LIB_SOURCES  "clCreateContextFromType.c"
-                   "clReleaseContext.c"
-                   "clRetainContext.c"
-                   "clGetContextInfo.c"
-                   "clCreateCommandQueue.c"
-                   "clCreateCommandQueueWithProperties.c"
-                   "clReleaseCommandQueue.c"
-                   "clRetainCommandQueue.c"
-                   "clGetCommandQueueInfo.c"
-                   "clCreateBuffer.c"
-                   "clCreateSubBuffer.c"
-                   "clEnqueueFillImage.c"
-                   "clEnqueueFillBuffer.c"
-                   "clEnqueueReadBuffer.c"
-                   "clEnqueueReadBufferRect.c"
-                   "clEnqueueMapBuffer.c"
-                   "clEnqueueUnmapMemObject.c"
-                   "clEnqueueMarkerWithWaitList.c"
-                   "clEnqueueBarrierWithWaitList.c"
-                   "clReleaseMemObject.c"
-                   "clRetainMemObject.c"
-                   "clGetMemObjectInfo.c"
-                   "clSetMemObjectDestructorCallback.c"
-                   "clCreateProgramWithSource.c"
-                   "clCreateProgramWithBinary.c"
-                   "clCreateProgramWithIL.c"
-                   "clCreateProgramWithBuiltInKernels.c"
-                   "clCreateProgramWithDefinedBuiltInKernels.c"
-                   "clReleaseProgram.c"
-                   "clRetainProgram.c"
-                   "clBuildProgram.c"
-                   "pocl_build.c"
-                   "clCompileProgram.c"
-                   "clLinkProgram.c"
-                   "clCreateKernel.c"
-                   "clReleaseKernel.c"
-                   "clRetainKernel.c"
-                   "clSetKernelArg.c"
-                   "clEnqueueNDRangeKernel.c"
-                   "clEnqueueNativeKernel.c"
-                   "clCreateKernelsInProgram.c"
-                   "clGetKernelInfo.c"
-                   "clGetKernelArgInfo.c"
-                   "clGetPlatformIDs.c"
-                   "clGetPlatformInfo.c"
-                   "clGetDeviceAndHostTimer.c"
-                   "clGetDeviceIDs.c"
-                   "clGetDeviceInfo.c"
-                   "clCreateContext.c"
-                   "clGetProgramBuildInfo.c"
-                   "clEnqueueWriteBuffer.c"
-                   "clEnqueueWriteBufferRect.c"
-                   "clEnqueueCopyBuffer.c"
-                   "clEnqueueCopyBufferRect.c"
-                   "clEnqueueCopyBufferToImage.c"
-                   "clEnqueueCopyImageToBuffer.c"
-                   "clEnqueueMigrateMemObjects.c"
-                   "clFinish.c"
-                   "clFlush.c"
-                   "clEnqueueBarrier.c"
-                   "clEnqueueMarker.c"
-                   "clGetKernelWorkGroupInfo.c"
-                   "clGetKernelSubGroupInfo.c"
-                   "clGetKernelSuggestedLocalWorkSize.c"
-                   "clGetProgramInfo.c"
-                   "clGetEventProfilingInfo.c"
-                   "clWaitForEvents.c"
-                   "clEnqueueWaitForEvents.c"
-                   "clReleaseEvent.c"
-                   "clRetainEvent.c"
-                   "clSetEventCallback.c"
-                   "clGetEventInfo.c"
-                   "clCreateUserEvent.c"
-                   "clSetUserEventStatus.c"
-                   "clEnqueueTask.c"
-                   "clCreateImage.c"
-                   "clCreateImage2D.c"
-                   "clCreateImage3D.c"
-                   "clEnqueueReadImage.c"
-                   "clEnqueueWriteImage.c"
-                   "clCreateSampler.c"
-                   "clReleaseSampler.c"
-                   "clRetainSampler.c"
-                   "clGetSamplerInfo.c"
-                   "clGetMutableCommandInfoKHR.c"
-                   "clEnqueueCopyImage.c"
-                   "clEnqueueMapImage.c"
-                   "clGetHostTimer.c"
-                   "clGetImageInfo.c"
-                   "clCreateFromGLTexture.c"
-                   "clCreateFromGLTexture2D.c"
-                   "clCreateFromGLTexture3D.c"
-                   "clEnqueueAcquireGLObjects.c"
-                   "clEnqueueReleaseGLObjects.c"
-                   "clGetGLContextInfoKHR.c"
-                   "clUnloadCompiler.c"
-                   "clGetSupportedImageFormats.c"
-                   "clGetExtensionFunctionAddress.c"
-                   "clGetExtensionFunctionAddressForPlatform.c"
-                   "clIcdGetPlatformIDsKHR.c"
-                   "clIcdGetFunctionAddressForPlatformKHR.c"
-                   "clIcdSetPlatformDispatchDataKHR.c"
-                   "clReleaseDevice.c"
-                   "clRetainDevice.c"
-                   "clCreateSubDevices.c"
-                   "clUnloadPlatformCompiler.c"
-                   "clSetContentSizeBufferPoCL.c"
-                   "clCreatePipe.c"
-                   "clGetPipeInfo.c"
-                   "clSetProgramReleaseCallback.c"
-                   "clSetContextDestructorCallback.c"
-                   "clSetProgramSpecializationConstant.c"
-                   "clCloneKernel.c"
-                   "clEnqueueSVMMigrateMem.c"
-                   "clUpdateMutableCommandsKHR.c"
-                   "clSVMAlloc.c" "clSVMFree.c" "clEnqueueSVMFree.c"
-                   "clEnqueueSVMMap.c" "clEnqueueSVMUnmap.c"
-                   "clEnqueueSVMMemcpy.c" "clEnqueueSVMMemFill.c"
-                   "clSetKernelArgSVMPointer.c" "clSetKernelExecInfo.c"
-                   "clSetDefaultDeviceCommandQueue.c"
-                   "clCommandBarrierWithWaitListKHR.c"
-                   "clCommandCopyBufferKHR.c"
-                   "clCommandCopyBufferRectKHR.c"
-                   "clCommandCopyBufferToImageKHR.c"
-                   "clCommandCopyImageKHR.c"
-                   "clCommandCopyImageToBufferKHR.c"
-                   "clCommandFillBufferKHR.c"
-                   "clCommandFillImageKHR.c"
-                   "clCommandSVMMemcpyKHR.c"
-                   "clCommandSVMMemFillKHR.c"
-                   "clCommandNDRangeKernelKHR.c"
-                   "clCreateCommandBufferKHR.c"
-                   "clEnqueueCommandBufferKHR.c"
-                   "clFinalizeCommandBufferKHR.c"
-                   "clGetCommandBufferInfoKHR.c"
-                   "clReleaseCommandBufferKHR.c"
-                   "clRetainCommandBufferKHR.c"
-                   "clRemapCommandBufferKHR.c"
-                   "clMemAllocINTEL.c"
-                   "clMemFreeINTEL.c"
-                   "clGetMemAllocInfoINTEL.c"
-                   "clSetKernelArgMemPointerINTEL.c"
-                   "clEnqueueMemFillINTEL.c"
-                   "clEnqueueMemcpyINTEL.c"
-                   "clEnqueueMemAdviseINTEL.c"
-                   "clEnqueueMigrateMemINTEL.c"
-                   "clCommandReadBufferPOCL.c"
-                   "clCommandReadBufferRectPOCL.c"
-                   "clCommandReadImagePOCL.c"
-                   "clCommandSVMMemcpyPOCL.c"
-                   "clCommandSVMMemcpyRectPOCL.c"
-                   "clCommandSVMMemfillPOCL.c"
-                   "clCommandSVMMemfillRectPOCL.c"
-                   "clCommandWriteBufferPOCL.c"
-                   "clCommandWriteBufferRectPOCL.c"
-                   "clCommandWriteImagePOCL.c"
-                   "clEnqueueSVMMemcpyRectPOCL.c"
-                   "clEnqueueSVMMemfillRectPOCL.c"
-                   "clSetKernelArgDevicePointer.c"
-
-                   "pocl_builtin_kernels.c" "pocl_builtin_kernels.h"
-                   "pocl_cl_half_util.c" "pocl_cl_half_util.h"
-                   "pocl_cl.h" "pocl_icd.h" "pocl_llvm.h"
-                   "pocl_util.h" "pocl_util.c"
-                   "pocl_run_command.c" "pocl_run_command.h"
-                   "pocl_image_util.c" "pocl_image_util.h"
-                   "pocl_img_buf_cpy.c"
-                   "pocl_fill_memobj.c"
-                   "pocl_ndrange_kernel.c"
-                   "pocl_tracing.h" "pocl_tracing.c"
-                   "pocl_runtime_config.c" "pocl_runtime_config.h"
-                   "pocl_mem_management.c"  "pocl_mem_management.h"
-                   "pocl_hash.c"
-                   "pocl_debug.h" "pocl_debug.c"
-                   "pocl_tensor_util.h" "pocl_tensor_util.c"
-                   "pocl_binary.c" "pocl_opengl.c" "pocl_cq_profiling.c"
-                   "pocl_cmdbuf.h" "pocl_cmdbuf.c"
-                   # platform dep
-                   "pocl_timing.h" "pocl_threads.h" "pocl_file_util.h"
-                   # dbks
-                   "dbk/pocl_dbk_khr_jpeg_shared.c"
-                   "dbk/pocl_dbk_khr_jpeg_shared.h"
-                   "dbk/pocl_dbk_khr_onnxrt_shared.c"
-                   "dbk/pocl_dbk_khr_onnxrt_shared.h"
-                   "dbk/pocl_dbk_khr_img_shared.c"
-                   "dbk/pocl_dbk_khr_img_shared.h"
-                   "dbk/pocl_dbk_khr_dnn_utils_shared.c"
-                   "dbk/pocl_dbk_khr_dnn_utils_shared.h"
-                   "dbk/pocl_dbk_khr_convert_shared.c"
-                   "dbk/pocl_dbk_khr_convert_shared.h"
-                   "dbk/pocl_dbk_set_rows_shared.c"
-                   "dbk/pocl_dbk_set_rows_shared.h"
-                   "pocl_raw_ptr_set.c"
-)
+set(POCL_LIB_SOURCES
+    "clCreateContextFromType.c"
+    "clReleaseContext.c"
+    "clRetainContext.c"
+    "clGetContextInfo.c"
+    "clCreateCommandQueue.c"
+    "clCreateCommandQueueWithProperties.c"
+    "clReleaseCommandQueue.c"
+    "clRetainCommandQueue.c"
+    "clGetCommandQueueInfo.c"
+    "clCreateBuffer.c"
+    "clCreateSubBuffer.c"
+    "clEnqueueFillImage.c"
+    "clEnqueueFillBuffer.c"
+    "clEnqueueReadBuffer.c"
+    "clEnqueueReadBufferRect.c"
+    "clEnqueueMapBuffer.c"
+    "clEnqueueUnmapMemObject.c"
+    "clEnqueueMarkerWithWaitList.c"
+    "clEnqueueBarrierWithWaitList.c"
+    "clReleaseMemObject.c"
+    "clRetainMemObject.c"
+    "clGetMemObjectInfo.c"
+    "clSetMemObjectDestructorCallback.c"
+    "clCreateProgramWithSource.c"
+    "clCreateProgramWithBinary.c"
+    "clCreateProgramWithIL.c"
+    "clCreateProgramWithBuiltInKernels.c"
+    "clCreateProgramWithDefinedBuiltInKernels.c"
+    "clReleaseProgram.c"
+    "clRetainProgram.c"
+    "clBuildProgram.c"
+    "pocl_build.c"
+    "clCompileProgram.c"
+    "clLinkProgram.c"
+    "clCreateKernel.c"
+    "clReleaseKernel.c"
+    "clRetainKernel.c"
+    "clSetKernelArg.c"
+    "clEnqueueNDRangeKernel.c"
+    "clEnqueueNativeKernel.c"
+    "clCreateKernelsInProgram.c"
+    "clGetKernelInfo.c"
+    "clGetKernelArgInfo.c"
+    "clGetPlatformIDs.c"
+    "clGetPlatformInfo.c"
+    "clGetDeviceAndHostTimer.c"
+    "clGetDeviceIDs.c"
+    "clGetDeviceInfo.c"
+    "clCreateContext.c"
+    "clGetProgramBuildInfo.c"
+    "clEnqueueWriteBuffer.c"
+    "clEnqueueWriteBufferRect.c"
+    "clEnqueueCopyBuffer.c"
+    "clEnqueueCopyBufferRect.c"
+    "clEnqueueCopyBufferToImage.c"
+    "clEnqueueCopyImageToBuffer.c"
+    "clEnqueueMigrateMemObjects.c"
+    "clFinish.c"
+    "clFlush.c"
+    "clEnqueueBarrier.c"
+    "clEnqueueMarker.c"
+    "clGetKernelWorkGroupInfo.c"
+    "clGetKernelSubGroupInfo.c"
+    "clGetKernelSuggestedLocalWorkSize.c"
+    "clGetProgramInfo.c"
+    "clGetEventProfilingInfo.c"
+    "clWaitForEvents.c"
+    "clEnqueueWaitForEvents.c"
+    "clReleaseEvent.c"
+    "clRetainEvent.c"
+    "clSetEventCallback.c"
+    "clGetEventInfo.c"
+    "clCreateUserEvent.c"
+    "clSetUserEventStatus.c"
+    "clEnqueueTask.c"
+    "clCreateImage.c"
+    "clCreateImage2D.c"
+    "clCreateImage3D.c"
+    "clEnqueueReadImage.c"
+    "clEnqueueWriteImage.c"
+    "clCreateSampler.c"
+    "clReleaseSampler.c"
+    "clRetainSampler.c"
+    "clGetSamplerInfo.c"
+    "clGetMutableCommandInfoKHR.c"
+    "clEnqueueCopyImage.c"
+    "clEnqueueMapImage.c"
+    "clGetHostTimer.c"
+    "clGetImageInfo.c"
+    "clCreateFromGLTexture.c"
+    "clCreateFromGLTexture2D.c"
+    "clCreateFromGLTexture3D.c"
+    "clEnqueueAcquireGLObjects.c"
+    "clEnqueueReleaseGLObjects.c"
+    "clGetGLContextInfoKHR.c"
+    "clUnloadCompiler.c"
+    "clGetSupportedImageFormats.c"
+    "clGetExtensionFunctionAddress.c"
+    "clGetExtensionFunctionAddressForPlatform.c"
+    "clIcdGetPlatformIDsKHR.c"
+    "clIcdGetFunctionAddressForPlatformKHR.c"
+    "clIcdSetPlatformDispatchDataKHR.c"
+    "clReleaseDevice.c"
+    "clRetainDevice.c"
+    "clCreateSubDevices.c"
+    "clUnloadPlatformCompiler.c"
+    "clSetContentSizeBufferPoCL.c"
+    "clCreatePipe.c"
+    "clGetPipeInfo.c"
+    "clSetProgramReleaseCallback.c"
+    "clSetContextDestructorCallback.c"
+    "clSetProgramSpecializationConstant.c"
+    "clCloneKernel.c"
+    "clEnqueueSVMMigrateMem.c"
+    "clUpdateMutableCommandsKHR.c"
+    "clSVMAlloc.c"
+    "clSVMFree.c"
+    "clEnqueueSVMFree.c"
+    "clEnqueueSVMMap.c"
+    "clEnqueueSVMUnmap.c"
+    "clEnqueueSVMMemcpy.c"
+    "clEnqueueSVMMemFill.c"
+    "clSetKernelArgSVMPointer.c"
+    "clSetKernelExecInfo.c"
+    "clSetDefaultDeviceCommandQueue.c"
+    "clCommandBarrierWithWaitListKHR.c"
+    "clCommandCopyBufferKHR.c"
+    "clCommandCopyBufferRectKHR.c"
+    "clCommandCopyBufferToImageKHR.c"
+    "clCommandCopyImageKHR.c"
+    "clCommandCopyImageToBufferKHR.c"
+    "clCommandFillBufferKHR.c"
+    "clCommandFillImageKHR.c"
+    "clCommandSVMMemcpyKHR.c"
+    "clCommandSVMMemFillKHR.c"
+    "clCommandNDRangeKernelKHR.c"
+    "clCreateCommandBufferKHR.c"
+    "clEnqueueCommandBufferKHR.c"
+    "clFinalizeCommandBufferKHR.c"
+    "clGetCommandBufferInfoKHR.c"
+    "clReleaseCommandBufferKHR.c"
+    "clRetainCommandBufferKHR.c"
+    "clRemapCommandBufferKHR.c"
+    "clMemAllocINTEL.c"
+    "clMemFreeINTEL.c"
+    "clGetMemAllocInfoINTEL.c"
+    "clSetKernelArgMemPointerINTEL.c"
+    "clEnqueueMemFillINTEL.c"
+    "clEnqueueMemcpyINTEL.c"
+    "clEnqueueMemAdviseINTEL.c"
+    "clEnqueueMigrateMemINTEL.c"
+    "clCommandReadBufferPOCL.c"
+    "clCommandReadBufferRectPOCL.c"
+    "clCommandReadImagePOCL.c"
+    "clCommandSVMMemcpyPOCL.c"
+    "clCommandSVMMemcpyRectPOCL.c"
+    "clCommandSVMMemfillPOCL.c"
+    "clCommandSVMMemfillRectPOCL.c"
+    "clCommandWriteBufferPOCL.c"
+    "clCommandWriteBufferRectPOCL.c"
+    "clCommandWriteImagePOCL.c"
+    "clEnqueueSVMMemcpyRectPOCL.c"
+    "clEnqueueSVMMemfillRectPOCL.c"
+    "clSetKernelArgDevicePointer.c"
+    "pocl_builtin_kernels.c"
+    "pocl_builtin_kernels.h"
+    "pocl_cl_half_util.c"
+    "pocl_cl_half_util.h"
+    "pocl_cl.h"
+    "pocl_icd.h"
+    "pocl_llvm.h"
+    "pocl_util.h"
+    "pocl_util.c"
+    "pocl_run_command.c"
+    "pocl_run_command.h"
+    "pocl_image_util.c"
+    "pocl_image_util.h"
+    "pocl_img_buf_cpy.c"
+    "pocl_fill_memobj.c"
+    "pocl_ndrange_kernel.c"
+    "pocl_tracing.h"
+    "pocl_tracing.c"
+    "pocl_runtime_config.c"
+    "pocl_runtime_config.h"
+    "pocl_mem_management.c"
+    "pocl_mem_management.h"
+    "pocl_hash.c"
+    "pocl_debug.h"
+    "pocl_debug.c"
+    "pocl_tensor_util.h"
+    "pocl_tensor_util.c"
+    "pocl_binary.c"
+    "pocl_opengl.c"
+    "pocl_cq_profiling.c"
+    "pocl_cmdbuf.h"
+    "pocl_cmdbuf.c"
+    # platform dep
+    "pocl_timing.h"
+    "pocl_threads.h"
+    "pocl_file_util.h"
+    # dbks
+    "dbk/pocl_dbk_khr_jpeg_shared.c"
+    "dbk/pocl_dbk_khr_jpeg_shared.h"
+    "dbk/pocl_dbk_khr_onnxrt_shared.c"
+    "dbk/pocl_dbk_khr_onnxrt_shared.h"
+    "dbk/pocl_dbk_khr_img_shared.c"
+    "dbk/pocl_dbk_khr_img_shared.h"
+    "dbk/pocl_dbk_khr_dnn_utils_shared.c"
+    "dbk/pocl_dbk_khr_dnn_utils_shared.h"
+    "dbk/pocl_dbk_khr_convert_shared.c"
+    "dbk/pocl_dbk_khr_convert_shared.h"
+    "dbk/pocl_dbk_set_rows_shared.c"
+    "dbk/pocl_dbk_set_rows_shared.h"
+    "pocl_raw_ptr_set.c")
 
 unset(EXTRA_LLVM_SOURCES)
 
 if(ENABLE_LLVM_PLATFORM_SUPPORT)
   list(APPEND POCL_LIB_SOURCES "pocl_timing.cc" "pocl_threads.cc")
-  list(APPEND EXTRA_LLVM_SOURCES "pocl_llvm_file_utils.cc" "pocl_llvm_dynlib.cc")
+  list(APPEND EXTRA_LLVM_SOURCES "pocl_llvm_file_utils.cc"
+       "pocl_llvm_dynlib.cc")
 else()
-  list(APPEND POCL_LIB_SOURCES "pocl_timing.c" "pocl_threads.c" "pocl_file_util.c" "pocl_dynlib.c")
+  list(APPEND POCL_LIB_SOURCES "pocl_timing.c" "pocl_threads.c"
+       "pocl_file_util.c" "pocl_dynlib.c")
 endif()
 
 if(ANDROID)
@@ -271,10 +294,10 @@ if(BUILD_SHARED_LIBS AND MSVC)
 endif()
 harden("pocl_cache")
 
-if (ENABLE_LLVM)
+if(ENABLE_LLVM)
   # this is required, because we're compiling the C++ files of this directory
-  # with LLVM-provided flags, which usually contain their own setting of
-  # C++ standard, which may be in conflict with pocl's default C++ standard.
+  # with LLVM-provided flags, which usually contain their own setting of C++
+  # standard, which may be in conflict with pocl's default C++ standard.
   unset(CMAKE_CXX_STANDARD)
   unset(CMAKE_CXX_STANDARD_REQUIRED)
 
@@ -284,7 +307,9 @@ if (ENABLE_LLVM)
   if(HOST_CPU_ENABLE_JIT)
     list(APPEND EXTRA_LLVM_SOURCES "pocl_llvm_orc.cc")
   endif()
-  set(LLVM_API_SOURCES "pocl_llvm_build.cc" "pocl_llvm_metadata.cc" "pocl_llvm_utils.cc" "pocl_llvm_wg.cc" ${EXTRA_LLVM_SOURCES})
+  set(LLVM_API_SOURCES
+      "pocl_llvm_build.cc" "pocl_llvm_metadata.cc" "pocl_llvm_utils.cc"
+      "pocl_llvm_wg.cc" ${EXTRA_LLVM_SOURCES})
 
   pocl_build_clang_llvm_object(lib_cl_llvm ${LLVM_API_SOURCES})
   if(LLVM_PACKAGE_VERSION)
@@ -295,20 +320,18 @@ if (ENABLE_LLVM)
     list(APPEND LIBPOCL_OBJS "$<TARGET_OBJECTS:lib_cl_llvm>")
   endif()
 
-  if (ENABLE_MLIR)
-    list(APPEND POCL_LIB_SOURCES
-                   "pocl_mlir.h"
-                   "pocl_mlir_file_util.hh"
-    )
-    set(MLIR_API_SOURCES "pocl_mlir_build.cc" "pocl_mlir_wg.cc"
-                         "pocl_mlir_metadata.cc" "pocl_mlir_utils.cc"
-                         "pocl_mlir_file_util.cc")
+  if(ENABLE_MLIR)
+    list(APPEND POCL_LIB_SOURCES "pocl_mlir.h" "pocl_mlir_file_util.hh")
+    set(MLIR_API_SOURCES
+        "pocl_mlir_build.cc" "pocl_mlir_wg.cc" "pocl_mlir_metadata.cc"
+        "pocl_mlir_utils.cc" "pocl_mlir_file_util.cc")
     pocl_build_clang_llvm_object(lib_cl_mlir ${MLIR_API_SOURCES})
-    target_include_directories(lib_cl_mlir PRIVATE "${CMAKE_SOURCE_DIR}/lib/mliropencl/include")
-    target_include_directories(lib_cl_mlir PRIVATE "${CMAKE_BINARY_DIR}/lib/mliropencl/include")
+    target_include_directories(
+      lib_cl_mlir PRIVATE "${CMAKE_SOURCE_DIR}/lib/mliropencl/include")
+    target_include_directories(
+      lib_cl_mlir PRIVATE "${CMAKE_BINARY_DIR}/lib/mliropencl/include")
     # necessary to generate .inc headers before attempting to build MLIR sources
-    # pocl_mlir_utils.cc:48:
-    # include/pocl/Dialect/Dialect.hh:31:10: fatal error:
+    # pocl_mlir_utils.cc:48: include/pocl/Dialect/Dialect.hh:31:10: fatal error:
     # pocl/Dialect/PoclOpsDialect.h.inc: No such file or directory
     add_dependencies(lib_cl_mlir PoclDialect)
 
@@ -319,8 +342,8 @@ if (ENABLE_LLVM)
       list(APPEND LIBPOCL_OBJS "$<TARGET_OBJECTS:mlirpasses>")
       list(APPEND LIBPOCL_OBJS "$<TARGET_OBJECTS:lib_cl_mlir>")
     endif()
-    # With static MLIR, embed PoclDialect objects directly into libpocl.
-    # With shared MLIR, PoclDialect.so is linked separately.
+    # With static MLIR, embed PoclDialect objects directly into libpocl. With
+    # shared MLIR, PoclDialect.so is linked separately.
     if(NOT TARGET MLIR)
       list(APPEND LIBPOCL_OBJS "$<TARGET_OBJECTS:obj.PoclDialect>")
     endif()
@@ -332,7 +355,8 @@ if (ENABLE_LLVM)
     target_compile_definitions(lib_cl_llvm INTERFACE IMPORT_POCL_LIB)
   endif()
 
-  target_include_directories(lib_cl_llvm PRIVATE "${CMAKE_SOURCE_DIR}/lib/llvmopencl")
+  target_include_directories(lib_cl_llvm
+                             PRIVATE "${CMAKE_SOURCE_DIR}/lib/llvmopencl")
 
   if(ENABLE_SPIRV AND HAVE_LLVM_SPIRV_LIB)
     target_include_directories(lib_cl_llvm PRIVATE ${LLVM_SPIRV_INCLUDEDIR})
@@ -360,11 +384,12 @@ if(HAVE_LTTNG_UST)
   list(APPEND POCL_LIB_SOURCES "pocl_lttng.c" "pocl_lttng.h")
 endif()
 
-# this is so that we don't compile twice when building both libpocl and libOpenCL
+# this is so that we don't compile twice when building both libpocl and
+# libOpenCL
 add_library("libpocl_unlinked_objs" OBJECT ${POCL_LIB_SOURCES})
 
 target_include_directories(libpocl_unlinked_objs
-  PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/STC/include)
+                           PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/STC/include)
 
 if(BUILD_SHARED_LIBS AND MSVC)
   # Inject __declspec(dllexport).
@@ -374,7 +399,7 @@ endif()
 
 harden("libpocl_unlinked_objs")
 
-#################################################################
+# ##############################################################################
 
 set(POCL_PRIVATE_LINK_LIST)
 
@@ -389,26 +414,32 @@ endif()
 
 if(ENABLE_LLVM)
   if(LLVM_PACKAGE_VERSION)
-    list(APPEND POCL_PRIVATE_LINK_LIST ${POCL_CLANG_LINK_TARGETS} ${POCL_LLVM_LINK_TARGETS} ${LLVM_SYSLIBS})
+    list(APPEND POCL_PRIVATE_LINK_LIST ${POCL_CLANG_LINK_TARGETS}
+         ${POCL_LLVM_LINK_TARGETS} ${LLVM_SYSLIBS})
   else()
-    list(APPEND POCL_PRIVATE_LINK_LIST ${CLANG_LINK_LIBRARIES} ${LLVM_LINK_LIBRARIES} ${LLVM_SYSLIBS})
+    list(APPEND POCL_PRIVATE_LINK_LIST ${CLANG_LINK_LIBRARIES}
+         ${LLVM_LINK_LIBRARIES} ${LLVM_SYSLIBS})
   endif()
-  if (ENABLE_SPIRV AND HAVE_LLVM_SPIRV_LIB)
-    if(APPLE AND VISIBILITY_HIDDEN AND LLVM_SPIRV_LIB MATCHES "\\.a$")
+  if(ENABLE_SPIRV AND HAVE_LLVM_SPIRV_LIB)
+    if(APPLE
+       AND VISIBILITY_HIDDEN
+       AND LLVM_SPIRV_LIB MATCHES "\\.a$")
       # like the LLVM/Clang archives (see SetupLLVMviaCMake.cmake), keep the
       # translator's symbols (including weak LLVM template instantiations from
       # its objects) out of libpocl's exports; ld64 has no --exclude-libs, so
       # load the archive with -hidden-l instead.
       get_filename_component(LLVM_SPIRV_LIB_DIR "${LLVM_SPIRV_LIB}" DIRECTORY)
       get_filename_component(LLVM_SPIRV_LIB_NAME "${LLVM_SPIRV_LIB}" NAME_WE)
-      string(REGEX REPLACE "^lib" "" LLVM_SPIRV_LIB_NAME "${LLVM_SPIRV_LIB_NAME}")
-      list(PREPEND POCL_PRIVATE_LINK_LIST "-L${LLVM_SPIRV_LIB_DIR}" "-Wl,-hidden-l${LLVM_SPIRV_LIB_NAME}")
+      string(REGEX REPLACE "^lib" "" LLVM_SPIRV_LIB_NAME
+                           "${LLVM_SPIRV_LIB_NAME}")
+      list(PREPEND POCL_PRIVATE_LINK_LIST "-L${LLVM_SPIRV_LIB_DIR}"
+           "-Wl,-hidden-l${LLVM_SPIRV_LIB_NAME}")
     else()
       list(PREPEND POCL_PRIVATE_LINK_LIST ${LLVM_SPIRV_LIB})
     endif()
   endif()
 
-  if (ENABLE_MLIR)
+  if(ENABLE_MLIR)
     if(TARGET MLIR)
       list(APPEND POCL_PRIVATE_LINK_LIST PoclDialect)
       set(POCL_MLIR_LINK_LIBS MLIR)
@@ -438,12 +469,15 @@ if(ANDROID)
   list(APPEND POCL_PRIVATE_LINK_LIST ${ANDROID_LOG_LIB})
 endif()
 
-list(APPEND POCL_PRIVATE_LINK_LIST ${LIBMATH} ${CMAKE_DL_LIBS} ${PTHREAD_LIBRARY})
+list(APPEND POCL_PRIVATE_LINK_LIST ${LIBMATH} ${CMAKE_DL_LIBS}
+     ${PTHREAD_LIBRARY})
 
 # see lib/CMakeLists.txt
-set(POCL_TRANSITIVE_LIBS ${POCL_PRIVATE_LINK_LIST} PARENT_SCOPE)
+set(POCL_TRANSITIVE_LIBS
+    ${POCL_PRIVATE_LINK_LIST}
+    PARENT_SCOPE)
 
-#################################################################
+# ##############################################################################
 
 add_library("${POCL_LIBRARY_NAME}" ${LIBPOCL_OBJS})
 if(BUILD_SHARED_LIBS AND MSVC)
@@ -455,15 +489,20 @@ endif()
 harden("${POCL_LIBRARY_NAME}")
 
 if((UNIX OR MINGW) AND (NOT APPLE))
-  target_link_options("${POCL_LIBRARY_NAME}" PRIVATE "LINKER:--exclude-libs,ALL")
+  target_link_options("${POCL_LIBRARY_NAME}" PRIVATE
+                      "LINKER:--exclude-libs,ALL")
 endif()
 if(MINGW)
-  target_link_options("${POCL_LIBRARY_NAME}" PRIVATE "LINKER:--enable-auto-import,--enable-runtime-pseudo-reloc")
+  target_link_options(
+    "${POCL_LIBRARY_NAME}" PRIVATE
+    "LINKER:--enable-auto-import,--enable-runtime-pseudo-reloc")
 endif()
 
-set_target_properties("${POCL_LIBRARY_NAME}" PROPERTIES SOVERSION "${LIB_API_VERSION}"
-  VERSION "${LIB_BUILD_VERSION}"
-  LINK_FLAGS "${LLVM_LDFLAGS}  ${ICD_LD_FLAGS}")
+set_target_properties(
+  "${POCL_LIBRARY_NAME}"
+  PROPERTIES SOVERSION "${LIB_API_VERSION}"
+             VERSION "${LIB_BUILD_VERSION}"
+             LINK_FLAGS "${LLVM_LDFLAGS}  ${ICD_LD_FLAGS}")
 
 target_link_libraries("${POCL_LIBRARY_NAME}" PRIVATE ${POCL_PRIVATE_LINK_LIST})
 if(CLANG_LINK_DIRS AND (NOT CLANG_LINK_DIRS STREQUAL LLVM_LIBDIR))
@@ -478,48 +517,53 @@ if(POLICY CMP0207)
   cmake_policy(SET CMP0207 NEW)
 endif()
 
-install(TARGETS "${POCL_LIBRARY_NAME}"
-        RUNTIME_DEPENDENCY_SET libpocl_deps
-        ARCHIVE DESTINATION ${POCL_INSTALL_STATIC_LIBDIR_REL}
-        COMPONENT "dev"
-        LIBRARY DESTINATION ${POCL_INSTALL_PUBLIC_LIBDIR_REL}
-        COMPONENT "lib"
-        RUNTIME DESTINATION ${POCL_INSTALL_PUBLIC_LIBDIR_REL}
-        COMPONENT "lib"
-)
+install(
+  TARGETS "${POCL_LIBRARY_NAME}" RUNTIME_DEPENDENCY_SET libpocl_deps
+  ARCHIVE DESTINATION ${POCL_INSTALL_STATIC_LIBDIR_REL} COMPONENT "dev"
+  LIBRARY DESTINATION ${POCL_INSTALL_PUBLIC_LIBDIR_REL} COMPONENT "lib"
+  RUNTIME DESTINATION ${POCL_INSTALL_PUBLIC_LIBDIR_REL} COMPONENT "lib")
 
-# when building LLVM on Windows using micromamba environment,
-# the resulting pocl.dll might have transitional dependencies
-# through libLLVM.dll like e.g. libxml2.dll (listed in LLVM_SYSLIBS)
+# when building LLVM on Windows using micromamba environment, the resulting
+# pocl.dll might have transitional dependencies through libLLVM.dll like e.g.
+# libxml2.dll (listed in LLVM_SYSLIBS)
 #
-# This will instruct CMake to recursively resolve & install
-# them into the same directory as pocl.dll, while ignoring
-# MSVC libraries & DLLs found in system directories.
+# This will instruct CMake to recursively resolve & install them into the same
+# directory as pocl.dll, while ignoring MSVC libraries & DLLs found in system
+# directories.
 if(MSVC)
-  list(APPEND pre_excludes
-       "api-ms-.*"
-       "ext-ms-.*"
-       "vcruntime.*")
-  list(APPEND post_excludes
-       "[Cc]:/[Ww]indows/[Ss]ystem32/.*")
-  install(RUNTIME_DEPENDENCY_SET libpocl_deps
-          PRE_EXCLUDE_REGEXES ${pre_excludes}
-          POST_EXCLUDE_REGEXES ${post_excludes}
-          # at least when using micromamba, all dependencies
-          # are in the same directory as libLLVM.dll
-          DIRECTORIES ${LLVM_LIBDIR} ${LLVM_BINDIR}
-          # Destination directories for the resolved external libraries
-          LIBRARY DESTINATION ${POCL_INSTALL_PUBLIC_LIBDIR_REL}
-          RUNTIME DESTINATION ${POCL_INSTALL_PUBLIC_LIBDIR_REL})
+  list(APPEND pre_excludes "api-ms-.*" "ext-ms-.*" "vcruntime.*")
+  list(APPEND post_excludes "[Cc]:/[Ww]indows/[Ss]ystem32/.*")
+  install(
+    RUNTIME_DEPENDENCY_SET
+    libpocl_deps
+    PRE_EXCLUDE_REGEXES
+    ${pre_excludes}
+    POST_EXCLUDE_REGEXES
+    ${post_excludes}
+    # at least when using micromamba, all dependencies are in the same directory
+    # as libLLVM.dll
+    DIRECTORIES
+    ${LLVM_LIBDIR}
+    ${LLVM_BINDIR}
+    # Destination directories for the resolved external libraries
+    LIBRARY
+    DESTINATION
+    ${POCL_INSTALL_PUBLIC_LIBDIR_REL}
+    RUNTIME
+    DESTINATION
+    ${POCL_INSTALL_PUBLIC_LIBDIR_REL})
 endif()
 
-if (ENABLE_MLIR)
-  set_property(TARGET "${POCL_LIBRARY_NAME}" APPEND PROPERTY
-    INSTALL_RPATH "\$ORIGIN/../${POCL_INSTALL_PRIVATE_LIBDIR_REL}")
+if(ENABLE_MLIR)
+  set_property(
+    TARGET "${POCL_LIBRARY_NAME}"
+    APPEND
+    PROPERTY INSTALL_RPATH "\$ORIGIN/../${POCL_INSTALL_PRIVATE_LIBDIR_REL}")
 endif()
 
 if(ENABLE_IPO)
-  set_property(TARGET "${POCL_LIBRARY_NAME}" PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+  set_property(TARGET "${POCL_LIBRARY_NAME}"
+               PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
 if(WIN32)

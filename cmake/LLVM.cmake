@@ -1,36 +1,45 @@
-
-#=============================================================================
-#   CMake build system files for detecting Clang and LLVM
+# =============================================================================
+# CMake build system files for detecting Clang and LLVM
 #
-#   Copyright (c) 2014-2020 pocl developers
+# Copyright (c) 2014-2020 pocl developers
 #
-#   Permission is hereby granted, free of charge, to any person obtaining a copy
-#   of this software and associated documentation files (the "Software"), to deal
-#   in the Software without restriction, including without limitation the rights
-#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#   copies of the Software, and to permit persons to whom the Software is
-#   furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-#   The above copyright notice and this permission notice shall be included in
-#   all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-#   THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
-#=============================================================================
+# =============================================================================
 
 include(LLVMHelpers)
 
 # if the user provided CMake package root, use only that (NO_DEFAULT_PATH)
 if(DEFINED LLVM_DIR OR DEFINED ENV{LLVM_DIR})
-  find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH HINTS "${LLVM_DIR}" ENV{LLVM_DIR})
+  find_package(
+    LLVM
+    REQUIRED
+    CONFIG
+    NO_DEFAULT_PATH
+    HINTS
+    "${LLVM_DIR}"
+    ENV{LLVM_DIR})
   if((LLVM_VERSION_MAJOR LESS 18) OR (LLVM_VERSION_MAJOR GREATER 23))
-    message(FATAL_ERROR "LLVM version between 18.0 and 23.0 required, found: ${LLVM_VERSION_MAJOR}")
+    message(
+      FATAL_ERROR
+        "LLVM version between 18.0 and 23.0 required, found: ${LLVM_VERSION_MAJOR}"
+    )
   endif()
 endif()
 
@@ -38,9 +47,13 @@ endif()
 if(DEFINED WITH_LLVM_CONFIG AND WITH_LLVM_CONFIG)
   if(IS_ABSOLUTE "${WITH_LLVM_CONFIG}")
     if(EXISTS "${WITH_LLVM_CONFIG}")
-      set(LLVM_CONFIG_BIN "${WITH_LLVM_CONFIG}" CACHE PATH "path of llvm-config")
+      set(LLVM_CONFIG_BIN
+          "${WITH_LLVM_CONFIG}"
+          CACHE PATH "path of llvm-config")
     else()
-      message(FATAL_ERROR "${WITH_LLVM_CONFIG} does not point to an existing executable")
+      message(
+        FATAL_ERROR
+          "${WITH_LLVM_CONFIG} does not point to an existing executable")
     endif()
   else()
     find_program(LLVM_CONFIG_BIN NAMES "${WITH_LLVM_CONFIG}")
@@ -50,36 +63,51 @@ endif()
 # fallback search for LLVMConfig.cmake of supported versions in descending order
 if(NOT LLVM_CONFIG_BIN AND NOT LLVM_PACKAGE_VERSION)
   if(NOT MSVC)
-  find_package(LLVM 23.0.0...<23.2 CONFIG)
+    find_package(LLVM 23.0.0...<23.2 CONFIG)
 
-  if(NOT LLVM_FOUND)
-    find_package(LLVM 22.1.0...<22.2 CONFIG)
-  endif()
-  if(NOT LLVM_FOUND)
-    find_package(LLVM 21.1.0...<21.2 CONFIG)
-  endif()
-  if(NOT LLVM_FOUND)
-    find_package(LLVM 20.1.0...<20.2 CONFIG)
-  endif()
-  if(NOT LLVM_FOUND)
-    find_package(LLVM 19.1.0...<19.2 CONFIG)
-  endif()
-  if(NOT LLVM_FOUND)
-    find_package(LLVM 18.1.0...<18.2 CONFIG)
-  endif()
+    if(NOT LLVM_FOUND)
+      find_package(LLVM 22.1.0...<22.2 CONFIG)
+    endif()
+    if(NOT LLVM_FOUND)
+      find_package(LLVM 21.1.0...<21.2 CONFIG)
+    endif()
+    if(NOT LLVM_FOUND)
+      find_package(LLVM 20.1.0...<20.2 CONFIG)
+    endif()
+    if(NOT LLVM_FOUND)
+      find_package(LLVM 19.1.0...<19.2 CONFIG)
+    endif()
+    if(NOT LLVM_FOUND)
+      find_package(LLVM 18.1.0...<18.2 CONFIG)
+    endif()
   endif()
   # at last, fallback to finding any llvm-config executable
   if(NOT LLVM_FOUND AND NOT LLVM_CONFIG_BIN)
-    find_program(LLVM_CONFIG_BIN
-      NAMES
-        "llvmtce-config"
-        "llvm-config"
-        "llvm-config-mp-22.0" "llvm-config-mp-22" "llvm-config-22" "llvm-config220"
-        "llvm-config-mp-21.0" "llvm-config-mp-21" "llvm-config-21" "llvm-config210"
-        "llvm-config-mp-20.0" "llvm-config-mp-20" "llvm-config-20" "llvm-config200"
-        "llvm-config-mp-19.0" "llvm-config-mp-19" "llvm-config-19" "llvm-config190"
-        "llvm-config-mp-18.0" "llvm-config-mp-18" "llvm-config-18" "llvm-config180"
-        "llvm-config"
+    find_program(
+      LLVM_CONFIG_BIN
+      NAMES "llvmtce-config"
+            "llvm-config"
+            "llvm-config-mp-22.0"
+            "llvm-config-mp-22"
+            "llvm-config-22"
+            "llvm-config220"
+            "llvm-config-mp-21.0"
+            "llvm-config-mp-21"
+            "llvm-config-21"
+            "llvm-config210"
+            "llvm-config-mp-20.0"
+            "llvm-config-mp-20"
+            "llvm-config-20"
+            "llvm-config200"
+            "llvm-config-mp-19.0"
+            "llvm-config-mp-19"
+            "llvm-config-19"
+            "llvm-config190"
+            "llvm-config-mp-18.0"
+            "llvm-config-mp-18"
+            "llvm-config-18"
+            "llvm-config180"
+            "llvm-config"
       DOC "llvm-config executable")
   endif()
 endif()
@@ -89,8 +117,11 @@ if(NOT LLVM_CONFIG_BIN AND NOT LLVM_PACKAGE_VERSION)
 endif()
 
 if(LLVM_CONFIG_BIN)
-  if ((NOT IS_ABSOLUTE "${LLVM_CONFIG_BIN}") OR (NOT EXISTS "${LLVM_CONFIG_BIN}"))
-    message(FATAL_ERROR "Found LLVM_CONFIG ${LLVM_CONFIG_BIN} but it isn't a valid executable")
+  if((NOT IS_ABSOLUTE "${LLVM_CONFIG_BIN}") OR (NOT EXISTS "${LLVM_CONFIG_BIN}"
+                                               ))
+    message(
+      FATAL_ERROR
+        "Found LLVM_CONFIG ${LLVM_CONFIG_BIN} but it isn't a valid executable")
   endif()
 
   # get the LLVM version of the llvm-config executable
@@ -103,16 +134,17 @@ if(LLVM_CONFIG_BIN)
   elseif(LLVM_CONFIG_BIN MATCHES "llvm-config(.*)${CMAKE_EXECUTABLE_SUFFIX}$")
     set(LLVM_BINARY_SUFFIX "${CMAKE_MATCH_1}")
   else()
-    message(WARNING "Cannot determine llvm binary suffix from ${LLVM_CONFIG_BIN}")
+    message(
+      WARNING "Cannot determine llvm binary suffix from ${LLVM_CONFIG_BIN}")
   endif()
   message(STATUS "LLVM binaries suffix : ${LLVM_BINARY_SUFFIX}")
 
   if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
-    # Convert to real path only here, after detecting the binary suffix.
-    # This is necessary when symlinked to a non-suffix binary, like
-    # with the LLVM's Debian/Ubuntu packages.
-    # /usr/bin/llvm-config-21 -> ../lib/llvm-21/bin/llvm-config
-    file(REAL_PATH "${LLVM_CONFIG_BIN}"  LLVM_CONFIG_BIN)
+    # Convert to real path only here, after detecting the binary suffix. This is
+    # necessary when symlinked to a non-suffix binary, like with the LLVM's
+    # Debian/Ubuntu packages. /usr/bin/llvm-config-21 ->
+    # ../lib/llvm-21/bin/llvm-config
+    file(REAL_PATH "${LLVM_CONFIG_BIN}" LLVM_CONFIG_BIN)
   endif()
 
   get_filename_component(LLVM_CONFIG_LOCATION "${LLVM_CONFIG_BIN}" DIRECTORY)
@@ -129,8 +161,10 @@ if(LLVM_CONFIG_BIN)
     list(GET LLVM_VERSION_PARSED 0 LLVM_VERSION_MAJOR_BINARY)
     list(GET LLVM_VERSION_PARSED 1 LLVM_VERSION_MINOR_BINARY)
     if(NOT ((LLVM_VERSION_MAJOR EQUAL LLVM_VERSION_MAJOR_BINARY)
-       AND (LLVM_VERSION_MINOR EQUAL LLVM_VERSION_MINOR_BINARY)))
-     message(FATAL_ERROR "Mismatch between versions of LLVM package and LLVM-config binary!")
+            AND (LLVM_VERSION_MINOR EQUAL LLVM_VERSION_MINOR_BINARY)))
+      message(
+        FATAL_ERROR
+          "Mismatch between versions of LLVM package and LLVM-config binary!")
     endif()
   else()
     list(GET LLVM_VERSION_PARSED 0 LLVM_VERSION_MAJOR)
@@ -144,20 +178,24 @@ endif()
 
 if(CMAKE_CROSSCOMPILING)
   if(NOT LLVM_PACKAGE_VERSION OR NOT LLVM_CONFIG_BIN)
-  message(FATAL_ERROR "Cross-compiling with LLVM is only supported if both LLVM_DIR\
+    message(
+      FATAL_ERROR
+        "Cross-compiling with LLVM is only supported if both LLVM_DIR\
   and WITH_LLVM_CONFIG variables are provided; WITH_LLVM_CONFIG must point to a Host-side\
   llvm-config executable, and LLVM_DIR must point to a <...llvm/lib/cmake>\
   directory in CMAKE_SYSROOT (Target-side LLVM)")
   endif()
 else()
   if(LLVM_PACKAGE_VERSION AND LLVM_CONFIG_BIN)
-    message(WARNING "Both LLVM package and LLVM-config binary found; will use the package")
+    message(
+      WARNING
+        "Both LLVM package and LLVM-config binary found; will use the package")
   endif()
 endif()
 
 if(ENABLE_CLANGIR)
   find_package(MLIR CONFIG)
-  if (MLIR_FOUND)
+  if(MLIR_FOUND)
     message(STATUS "Found MLIRConfig.cmake in ${MLIR_DIR}")
     list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
   else()
@@ -166,11 +204,10 @@ if(ENABLE_CLANGIR)
   set(ENABLE_MLIR 1)
 endif()
 
-############################################################################
+# ##############################################################################
 
-# Prefer the CMake setup when possible, fallback to llvm-config
-# This ensures that the LLVM CMake variables are always correctly setup
-# for target system
+# Prefer the CMake setup when possible, fallback to llvm-config This ensures
+# that the LLVM CMake variables are always correctly setup for target system
 if(LLVM_PACKAGE_VERSION)
   message(STATUS "Setting up LLVM using LLVMConfig.cmake")
 
@@ -184,7 +221,7 @@ else()
   include(SetupLLVMviaBinary)
 endif()
 
-############################################################################
+# ##############################################################################
 
 if(LLVM_BUILD_MODE MATCHES "Debug")
   set(LLVM_BUILD_MODE_DEBUG 1)
@@ -193,11 +230,11 @@ else()
 endif()
 
 # When cross-compiling, we need some LLVM binaries both from Host and Target,
-# since the some of the tools are needed on the Target machine,
-# and some are needed on the Host to build the lib/kernel library.
+# since the some of the tools are needed on the Target machine, and some are
+# needed on the Host to build the lib/kernel library.
 #
-# find the Host binaries using LLVM_CONFIG_LOCATION,
-# and the Target binaries using LLVM_BINDIR
+# find the Host binaries using LLVM_CONFIG_LOCATION, and the Target binaries
+# using LLVM_BINDIR
 
 # find the Host programs first
 if(LLVM_CONFIG_LOCATION)
@@ -206,26 +243,38 @@ else()
   set(SEARCH_LOCATION ${LLVM_BINDIR})
 endif()
 message(STATUS "Searching for Host LLVM binaries in ${SEARCH_LOCATION}")
-find_llvm_program_or_die(HOST_CLANG     "clang"    "${SEARCH_LOCATION}"  "Host clang binary")
-find_llvm_program_or_die(HOST_CLANGXX   "clang++"  "${SEARCH_LOCATION}"  "Host clang++ binary")
-find_llvm_program_or_die(HOST_LLVM_OPT  "opt"      "${SEARCH_LOCATION}"  "Host LLVM optimizer")
-find_llvm_program_or_die(HOST_LLVM_LLC  "llc"      "${SEARCH_LOCATION}"  "Host LLVM static compiler")
-find_llvm_program_or_die(HOST_LLVM_AS   "llvm-as"  "${SEARCH_LOCATION}"  "Host LLVM assembler")
-find_llvm_program_or_die(HOST_LLVM_DIS  "llvm-dis" "${SEARCH_LOCATION}"  "Host LLVM disassembler")
-find_llvm_program_or_die(HOST_LLVM_LINK "llvm-link" "${SEARCH_LOCATION}" "Host LLVM IR linker")
-find_llvm_program(HOST_LLVM_SPIRV "llvm-spirv" "${SEARCH_LOCATION}"      "Host LLVM spirv translator")
-find_llvm_program(HOST_SPIRV_LINK "spirv-link" "${SEARCH_LOCATION}"      "Host spirv-link linker")
-find_llvm_program(HOST_LLVM_FILECHECK "FileCheck" "${SEARCH_LOCATION}"   "Host LLVM Filecheck")
+find_llvm_program_or_die(HOST_CLANG "clang" "${SEARCH_LOCATION}"
+                         "Host clang binary")
+find_llvm_program_or_die(HOST_CLANGXX "clang++" "${SEARCH_LOCATION}"
+                         "Host clang++ binary")
+find_llvm_program_or_die(HOST_LLVM_OPT "opt" "${SEARCH_LOCATION}"
+                         "Host LLVM optimizer")
+find_llvm_program_or_die(HOST_LLVM_LLC "llc" "${SEARCH_LOCATION}"
+                         "Host LLVM static compiler")
+find_llvm_program_or_die(HOST_LLVM_AS "llvm-as" "${SEARCH_LOCATION}"
+                         "Host LLVM assembler")
+find_llvm_program_or_die(HOST_LLVM_DIS "llvm-dis" "${SEARCH_LOCATION}"
+                         "Host LLVM disassembler")
+find_llvm_program_or_die(HOST_LLVM_LINK "llvm-link" "${SEARCH_LOCATION}"
+                         "Host LLVM IR linker")
+find_llvm_program(HOST_LLVM_SPIRV "llvm-spirv" "${SEARCH_LOCATION}"
+                  "Host LLVM spirv translator")
+find_llvm_program(HOST_SPIRV_LINK "spirv-link" "${SEARCH_LOCATION}"
+                  "Host spirv-link linker")
+find_llvm_program(HOST_LLVM_FILECHECK "FileCheck" "${SEARCH_LOCATION}"
+                  "Host LLVM Filecheck")
 if(ENABLE_MLIR)
-  find_llvm_program_or_die(CIROPT "cir-opt" "${SEARCH_LOCATION}" "cir-opt binary")
-  find_llvm_program_or_die(MLIR_TRANSLATE "mlir-translate" "${SEARCH_LOCATION}" "mlir-translate binary")
-  if (POLYGEIST_BINDIR)
-    find_llvm_program_or_die(CGEIST "cgeist" "${POLYGEIST_BINDIR}" "cgeist binary")
+  find_llvm_program_or_die(CIROPT "cir-opt" "${SEARCH_LOCATION}"
+                           "cir-opt binary")
+  find_llvm_program_or_die(MLIR_TRANSLATE "mlir-translate" "${SEARCH_LOCATION}"
+                           "mlir-translate binary")
+  if(POLYGEIST_BINDIR)
+    find_llvm_program_or_die(CGEIST "cgeist" "${POLYGEIST_BINDIR}"
+                             "cgeist binary")
     message(STATUS "Found cgeist ${CGEIST}")
     set(ENABLE_POLYGEIST 1)
   endif()
 endif()
-
 
 if(CMAKE_CROSSCOMPILING)
   message(STATUS "Searching for Target LLVM binaries in ${LLVM_BINDIR}")
@@ -235,21 +284,41 @@ if(CMAKE_CROSSCOMPILING)
   # must unset the ignore path to find binaries in the sysroot
   set(SAVED_CMAKE_SYSTEM_IGNORE_PATH ${CMAKE_SYSTEM_IGNORE_PATH})
   unset(CMAKE_SYSTEM_IGNORE_PATH)
-  find_llvm_program_or_die(TARGET_CLANG     "clang"    "${LLVM_BINDIR}"  "Target clang binary")
-  find_llvm_program_or_die(TARGET_CLANGXX   "clang++"  "${LLVM_BINDIR}"  "Target clang++ binary")
-  find_llvm_program_or_die(TARGET_LLVM_OPT  "opt"      "${LLVM_BINDIR}"  "Target LLVM optimizer")
-  find_llvm_program_or_die(TARGET_LLVM_LLC  "llc"      "${LLVM_BINDIR}"  "Target LLVM static compiler")
-  find_llvm_program_or_die(TARGET_LLVM_AS   "llvm-as"  "${LLVM_BINDIR}"  "Target LLVM assembler")
-  find_llvm_program_or_die(TARGET_LLVM_DIS  "llvm-dis" "${LLVM_BINDIR}"  "Target LLVM disassembler")
-  find_llvm_program_or_die(TARGET_LLVM_LINK "llvm-link" "${LLVM_BINDIR}" "Target LLVM IR linker")
-  find_llvm_program(TARGET_LLVM_SPIRV "llvm-spirv" "${LLVM_BINDIR}"      "Target LLVM spirv translator")
-  find_llvm_program(TARGET_SPIRV_LINK "spirv-link" "${LLVM_BINDIR}"      "Target spirv-link linker")
-  find_llvm_program(TARGET_LLVM_FILECHECK "FileCheck" "${LLVM_BINDIR}"   "Target LLVM Filecheck")
+  find_llvm_program_or_die(TARGET_CLANG "clang" "${LLVM_BINDIR}"
+                           "Target clang binary")
+  find_llvm_program_or_die(TARGET_CLANGXX "clang++" "${LLVM_BINDIR}"
+                           "Target clang++ binary")
+  find_llvm_program_or_die(TARGET_LLVM_OPT "opt" "${LLVM_BINDIR}"
+                           "Target LLVM optimizer")
+  find_llvm_program_or_die(TARGET_LLVM_LLC "llc" "${LLVM_BINDIR}"
+                           "Target LLVM static compiler")
+  find_llvm_program_or_die(TARGET_LLVM_AS "llvm-as" "${LLVM_BINDIR}"
+                           "Target LLVM assembler")
+  find_llvm_program_or_die(TARGET_LLVM_DIS "llvm-dis" "${LLVM_BINDIR}"
+                           "Target LLVM disassembler")
+  find_llvm_program_or_die(TARGET_LLVM_LINK "llvm-link" "${LLVM_BINDIR}"
+                           "Target LLVM IR linker")
+  find_llvm_program(TARGET_LLVM_SPIRV "llvm-spirv" "${LLVM_BINDIR}"
+                    "Target LLVM spirv translator")
+  find_llvm_program(TARGET_SPIRV_LINK "spirv-link" "${LLVM_BINDIR}"
+                    "Target spirv-link linker")
+  find_llvm_program(TARGET_LLVM_FILECHECK "FileCheck" "${LLVM_BINDIR}"
+                    "Target LLVM Filecheck")
   # reset to original
   set(CMAKE_SYSTEM_IGNORE_PATH ${SAVED_CMAKE_SYSTEM_IGNORE_PATH})
   set(LLVM_BINARY_SUFFIX ${SAVED_LLVM_BINARY_SUFFIX})
-  foreach(ITEM IN ITEMS TARGET_CLANG TARGET_CLANGXX TARGET_LLVM_OPT TARGET_LLVM_LLC TARGET_LLVM_AS
-          TARGET_LLVM_DIS TARGET_LLVM_LINK TARGET_LLVM_SPIRV TARGET_SPIRV_LINK TARGET_LLVM_FILECHECK)
+  foreach(
+    ITEM IN
+    ITEMS TARGET_CLANG
+          TARGET_CLANGXX
+          TARGET_LLVM_OPT
+          TARGET_LLVM_LLC
+          TARGET_LLVM_AS
+          TARGET_LLVM_DIS
+          TARGET_LLVM_LINK
+          TARGET_LLVM_SPIRV
+          TARGET_SPIRV_LINK
+          TARGET_LLVM_FILECHECK)
     remove_prefix_from_filepath(${ITEM})
   endforeach()
 else()
@@ -266,7 +335,7 @@ else()
   set(TARGET_LLVM_FILECHECK ${HOST_LLVM_FILECHECK})
 endif()
 
-############################################################################
+# ##############################################################################
 
 if(ENABLE_LLVM_FILECHECKS)
   if(NOT TARGET_LLVM_FILECHECK)
@@ -286,7 +355,7 @@ if(ENABLE_LLVM_FILECHECKS)
   endif()
 endif()
 
-############################################################################
+# ##############################################################################
 
 include(SetupLLVMSPIRV)
 
@@ -294,111 +363,146 @@ if(ENABLE_HOST_CPU_DEVICES)
   include(SetupLLVMHostCPU)
 endif()
 
-####################################################################
+# ##############################################################################
 
-# To catch issue #2041. Determine if kernel compiler LLVM does not have sysroot set.
-# Simple include should trigger this. See: https://gitlab.kitware.com/cmake/cmake/-/issues/26863
+# To catch issue #2041. Determine if kernel compiler LLVM does not have sysroot
+# set. Simple include should trigger this. See:
+# https://gitlab.kitware.com/cmake/cmake/-/issues/26863
 if(APPLE)
   message(STATUS "Checking LLVM configuration")
-  custom_try_compile_clang_silent("#include <stdio.h>" "printf(\"Hello World!\");return 0;" RES --target=${LLC_TRIPLE})
+  custom_try_compile_clang_silent(
+    "#include <stdio.h>" "printf(\"Hello World!\");return 0;" RES
+    --target=${LLC_TRIPLE})
   if(RES)
-    message(FATAL_ERROR "LLVM/Clang failed to compile. Maybe an issue with LLVM sysroot? See: https://gitlab.kitware.com/cmake/cmake/-/issues/26863")
+    message(
+      FATAL_ERROR
+        "LLVM/Clang failed to compile. Maybe an issue with LLVM sysroot? See: https://gitlab.kitware.com/cmake/cmake/-/issues/26863"
+    )
   endif()
   message(STATUS "LLVM configuration OK")
 endif()
 
-####################################################################
+# ##############################################################################
 
-#TODO finish the package version
-# From try_compile help:
-#    LINK_LIBRARIES <libs>...
-#    Specify libraries to be linked in the generated project.
-#    The list of libraries may refer to system libraries and to
-#    Imported Targets from the calling project.
+# TODO finish the package version From try_compile help: LINK_LIBRARIES
+# <libs>... Specify libraries to be linked in the generated project. The list of
+# libraries may refer to system libraries and to Imported Targets from the
+# calling project.
 #
 # ... this though doesn't work.
 # https://discourse.cmake.org/t/try-compile-try-run-link-against-target/7189/8
 
-# skip the check, if using Package / cross-compiling; unfortunately
-# simply using a CMake Target (provided by LLVM's CMake files) in
-# LINK_LIBRARIES does not work, we would have to extract flags etc manually
+# skip the check, if using Package / cross-compiling; unfortunately simply using
+# a CMake Target (provided by LLVM's CMake files) in LINK_LIBRARIES does not
+# work, we would have to extract flags etc manually
 if(NOT LLVM_PACKAGE_VERSION)
 
-# This tests that we can actually link to the llvm libraries.
-# Mostly to catch issues like #295 - cannot find -ledit
-if(NOT LLVM_LINK_TEST_SUCCESSFUL)
-  set(LLVM_LINK_TEST_FILENAME "${CMAKE_SOURCE_DIR}/cmake/LinkTestLLVM.cc")
-  try_compile(LLVM_LINK_TEST ${CMAKE_BINARY_DIR} "${LLVM_LINK_TEST_FILENAME}"
-              CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${LLVM_INCLUDE_DIRS}"
-              CMAKE_FLAGS "-DLINK_DIRECTORIES:STRING=${LLVM_LIBDIR}"
-              LINK_LIBRARIES "${LLVM_LDFLAGS}" "${LLVM_LINK_LIBRARIES}" "${LLVM_SYSLIBS}"
-              COMPILE_DEFINITIONS "${CMAKE_CXX_FLAGS} ${LLVM_CXXFLAGS}"
-              OUTPUT_VARIABLE _TRY_COMPILE_OUTPUT)
-  if(LLVM_LINK_TEST)
-    message(STATUS "LLVM link test OK")
-    set(LLVM_LINK_TEST_SUCCESSFUL 1 CACHE INTERNAL "LLVM link test result")
-  else()
-    message(STATUS "LLVM link test output: ${_TRY_COMPILE_OUTPUT}")
-    message(FATAL_ERROR "LLVM link test FAILED. This mostly happens when your LLVM installation does not have all dependencies installed.")
+  # This tests that we can actually link to the llvm libraries. Mostly to catch
+  # issues like #295 - cannot find -ledit
+  if(NOT LLVM_LINK_TEST_SUCCESSFUL)
+    set(LLVM_LINK_TEST_FILENAME "${CMAKE_SOURCE_DIR}/cmake/LinkTestLLVM.cc")
+    try_compile(
+      LLVM_LINK_TEST ${CMAKE_BINARY_DIR}
+      "${LLVM_LINK_TEST_FILENAME}"
+      CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${LLVM_INCLUDE_DIRS}"
+      CMAKE_FLAGS "-DLINK_DIRECTORIES:STRING=${LLVM_LIBDIR}"
+      LINK_LIBRARIES "${LLVM_LDFLAGS}" "${LLVM_LINK_LIBRARIES}"
+                     "${LLVM_SYSLIBS}"
+      COMPILE_DEFINITIONS "${CMAKE_CXX_FLAGS} ${LLVM_CXXFLAGS}"
+      OUTPUT_VARIABLE _TRY_COMPILE_OUTPUT)
+    if(LLVM_LINK_TEST)
+      message(STATUS "LLVM link test OK")
+      set(LLVM_LINK_TEST_SUCCESSFUL
+          1
+          CACHE INTERNAL "LLVM link test result")
+    else()
+      message(STATUS "LLVM link test output: ${_TRY_COMPILE_OUTPUT}")
+      message(
+        FATAL_ERROR
+          "LLVM link test FAILED. This mostly happens when your LLVM installation does not have all dependencies installed."
+      )
+    endif()
   endif()
+
+  # This tests that we can actually link to the Clang libraries.
+
+  if(NOT CLANG_LINK_TEST_SUCCESSFUL)
+    message(STATUS "Running Clang link test")
+    set(CLANG_LINK_TEST_FILENAME "${CMAKE_SOURCE_DIR}/cmake/LinkTestClang.cc")
+
+    set(CXX_COMPAT_FLAGS "")
+    if(MSVC)
+      set(CXX_COMPAT_FLAGS "/Zc:preprocessor")
+    endif()
+
+    set(CLT_LINK_DIRS ${LLVM_LIBDIR})
+    if(CLANG_LINK_DIRS AND (NOT CLANG_LINK_DIRS STREQUAL LLVM_LIBDIR))
+      list(APPEND CLT_LINK_DIRS ${CLANG_LINK_DIRS})
+    endif()
+
+    try_compile(
+      CLANG_LINK_TEST ${CMAKE_BINARY_DIR}
+      "${CLANG_LINK_TEST_FILENAME}"
+      CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${LLVM_INCLUDE_DIRS}"
+      CMAKE_FLAGS "-DLINK_DIRECTORIES:STRING=${CLT_LINK_DIRS}"
+      LINK_LIBRARIES ${LLVM_LDFLAGS} ${CLANG_LINK_LIBRARIES}
+                     ${LLVM_LINK_LIBRARIES} ${LLVM_SYSLIBS}
+      COMPILE_DEFINITIONS ${CMAKE_CXX_FLAGS} ${LLVM_CXXFLAGS}
+                          ${CXX_COMPAT_FLAGS} -DLLVM_MAJOR=${LLVM_VERSION_MAJOR}
+      OUTPUT_VARIABLE _TRY_COMPILE_OUTPUT)
+    if(CLANG_LINK_TEST)
+      message(STATUS "Clang link test OK")
+      set(CLANG_LINK_TEST_SUCCESSFUL
+          1
+          CACHE INTERNAL "Clang link test result")
+    else()
+      message(STATUS "Clang link test output: ${_TRY_COMPILE_OUTPUT}")
+      message(
+        FATAL_ERROR
+          "Clang link test FAILED. This mostly happens when your Clang installation does not have all dependencies and/or headers installed."
+      )
+    endif()
+  endif()
+
 endif()
 
-# This tests that we can actually link to the Clang libraries.
-
-if(NOT CLANG_LINK_TEST_SUCCESSFUL)
-  message(STATUS "Running Clang link test")
-  set(CLANG_LINK_TEST_FILENAME "${CMAKE_SOURCE_DIR}/cmake/LinkTestClang.cc")
-
-  set(CXX_COMPAT_FLAGS "")
-  if (MSVC)
-    set(CXX_COMPAT_FLAGS "/Zc:preprocessor")
-  endif()
-
-  set(CLT_LINK_DIRS ${LLVM_LIBDIR})
-  if(CLANG_LINK_DIRS AND (NOT CLANG_LINK_DIRS STREQUAL LLVM_LIBDIR))
-    list(APPEND CLT_LINK_DIRS ${CLANG_LINK_DIRS})
-  endif()
-
-  try_compile(CLANG_LINK_TEST ${CMAKE_BINARY_DIR} "${CLANG_LINK_TEST_FILENAME}"
-              CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${LLVM_INCLUDE_DIRS}"
-              CMAKE_FLAGS "-DLINK_DIRECTORIES:STRING=${CLT_LINK_DIRS}"
-              LINK_LIBRARIES ${LLVM_LDFLAGS} ${CLANG_LINK_LIBRARIES} ${LLVM_LINK_LIBRARIES} ${LLVM_SYSLIBS}
-              COMPILE_DEFINITIONS ${CMAKE_CXX_FLAGS} ${LLVM_CXXFLAGS} ${CXX_COMPAT_FLAGS} -DLLVM_MAJOR=${LLVM_VERSION_MAJOR}
-              OUTPUT_VARIABLE _TRY_COMPILE_OUTPUT)
-  if(CLANG_LINK_TEST)
-    message(STATUS "Clang link test OK")
-    set(CLANG_LINK_TEST_SUCCESSFUL 1 CACHE INTERNAL "Clang link test result")
-  else()
-    message(STATUS "Clang link test output: ${_TRY_COMPILE_OUTPUT}")
-    message(FATAL_ERROR "Clang link test FAILED. This mostly happens when your Clang installation does not have all dependencies and/or headers installed.")
-  endif()
-endif()
-
-endif()
-
-#####################################################################
+# ##############################################################################
 
 # add library of llvm passes (the object form is then linked to libpocl)
-function(pocl_build_clang_llvm_object TGT_NAME )
+function(pocl_build_clang_llvm_object TGT_NAME)
   if(LLVM_PACKAGE_VERSION)
-    # creates two targets: "${TGT_NAME}" STATIC/SHARED library and "obj.${TGT_NAME}" OBJECT library
-    add_clang_library(${TGT_NAME} ${LLVM_LINK_TYPE} OBJECT LINK_LIBS
-                      ${POCL_CLANG_LINK_TARGETS} ${POCL_LLVM_LINK_TARGETS}
-                      DISABLE_LLVM_LINK_LLVM_DYLIB PARTIAL_SOURCES_INTENDED
-                       ${ARGN})
+    # creates two targets: "${TGT_NAME}" STATIC/SHARED library and
+    # "obj.${TGT_NAME}" OBJECT library
+    add_clang_library(
+      ${TGT_NAME}
+      ${LLVM_LINK_TYPE}
+      OBJECT
+      LINK_LIBS
+      ${POCL_CLANG_LINK_TARGETS}
+      ${POCL_LLVM_LINK_TARGETS}
+      DISABLE_LLVM_LINK_LLVM_DYLIB
+      PARTIAL_SOURCES_INTENDED
+      ${ARGN})
     # TODO check if this works:
     harden(${TGT_NAME})
     target_compile_definitions(${TGT_NAME} PRIVATE ${LLVM_DEFINITIONS_LIST})
     target_compile_definitions(obj.${TGT_NAME} PRIVATE ${LLVM_DEFINITIONS_LIST})
     # we don't want "${TGT_NAME}" library to be built by default
-    set_target_properties(${TGT_NAME} PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
-    set_target_properties(obj.${TGT_NAME} PROPERTIES EXCLUDE_FROM_ALL 0 EXCLUDE_FROM_DEFAULT_BUILD 0)
+    set_target_properties(${TGT_NAME} PROPERTIES EXCLUDE_FROM_ALL 1
+                                                 EXCLUDE_FROM_DEFAULT_BUILD 1)
+    set_target_properties(
+      obj.${TGT_NAME} PROPERTIES EXCLUDE_FROM_ALL 0 EXCLUDE_FROM_DEFAULT_BUILD
+                                                    0)
     # set CXX standard, TODO why doesn't LLVMConfig.cmake set this?
-    set_target_properties(${TGT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED 1)
-    set_target_properties(obj.${TGT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED 1)
+    set_target_properties(${TGT_NAME} PROPERTIES CXX_STANDARD 17
+                                                 CXX_STANDARD_REQUIRED 1)
+    set_target_properties(obj.${TGT_NAME} PROPERTIES CXX_STANDARD 17
+                                                     CXX_STANDARD_REQUIRED 1)
     if(STATIC_LLVM AND DISABLE_LLVM_LINK_LLVM_DYLIB)
-      target_compile_definitions(${TGT_NAME} PRIVATE CLANG_BUILD_STATIC LLVM_BUILD_STATIC)
-      target_compile_definitions(obj.${TGT_NAME} PRIVATE CLANG_BUILD_STATIC LLVM_BUILD_STATIC)
+      target_compile_definitions(${TGT_NAME} PRIVATE CLANG_BUILD_STATIC
+                                                     LLVM_BUILD_STATIC)
+      target_compile_definitions(obj.${TGT_NAME} PRIVATE CLANG_BUILD_STATIC
+                                                         LLVM_BUILD_STATIC)
     endif()
   else()
     add_library(${TGT_NAME} OBJECT ${ARGN})

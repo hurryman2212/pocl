@@ -1,245 +1,232 @@
-#=============================================================================
-#   CMake build system files
+# =============================================================================
+# CMake build system files
 #
-#   Copyright (c) 2014-2023 pocl developers
+# Copyright (c) 2014-2023 pocl developers
 #
-#   Permission is hereby granted, free of charge, to any person obtaining a copy
-#   of this software and associated documentation files (the "Software"), to deal
-#   in the Software without restriction, including without limitation the rights
-#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#   copies of the Software, and to permit persons to whom the Software is
-#   furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-#   The above copyright notice and this permission notice shall be included in
-#   all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-#   THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
-#=============================================================================
+# =============================================================================
 
-
-set(SOURCES_WITH_SLEEF abs.cl
-abs_diff.cl
-add_sat.cl
-all.cl
-any.cl
-as_type.cl
-async_work_group_copy.cl
-async_work_group_strided_copy.cl
-atomics.cl
-bitselect.cl
-clamp.cl
-clamp_int.cl
-clz.cl
-ctz.cl
-convert_type.cl
-copysign.cl
-cross.cl
-degrees.cl
-distance.cl
-dot.cl
-fast_distance.cl
-fast_length.cl
-fast_normalize.cl
-fmax_common.cl
-fmin_common.cl
-fract.cl
-get_global_id.c
-get_linear_id.cl
-get_global_offset.c
-get_global_size.c
-get_group_id.c
-get_image_array_size.cl
-get_image_channel_data_type.cl
-get_image_channel_order.cl
-get_image_depth.cl
-get_image_dim.cl
-get_image_height.cl
-get_image_width.cl
-get_local_id.c
-get_local_size.c
-get_num_groups.c
-get_work_dim.c
-hadd.cl
-half_cos.cl
-half_divide.cl
-half_exp10.cl
-half_exp2.cl
-half_exp.cl
-half_log10.cl
-half_log2.cl
-half_log.cl
-half_powr.cl
-half_recip.cl
-half_rsqrt.cl
-half_sin.cl
-half_sqrt.cl
-half_tan.cl
-isequal.cl
-isgreater.cl
-isgreaterequal.cl
-isless.cl
-islessequal.cl
-islessgreater.cl
-isnotequal.cl
-isordered.cl
-isunordered.cl
-mad24.cl
-mad.cl
-mad_hi.cl
-mad_sat.cl
-max.cl
-max_i.cl
-maxmag.cl
-mem_fence.c
-min.cl
-min_i.cl
-minmag.cl
-mix.cl
-mul24.cl
-mul_hi.cl
-nan.cl
-native_divide.cl
-native_exp10.cl
-native_exp2.cl
-native_exp.cl
-native_log10.cl
-native_log2.cl
-native_log.cl
-native_powr.cl
-native_recip.cl
-native_rsqrt.cl
-native_sqrt.cl
-pocl_spawn_wg.c
-pocl_run_all_wgs.c
-popcount.cl
-prefetch.cl
-printf.c
-radians.cl
-read_image.cl
-rhadd.cl
-rotate.cl
-rsqrt.cl
-select.cl
-shuffle.cl
-signbit.cl
-sign.cl
-smoothstep.cl
-step.cl
-sub_sat.cl
-upsample.cl
-vload.cl
-vload_half.cl
-vload_store_half_f16c.c
-vstore.cl
-vstore_half.cl
-wait_group_events.cl
-work_group.cl
-write_image.cl
-
-###################################################################
-
-# from libclc
-
-libclc-pocl/pocl_fma.cl
-libclc-pocl/acospi.cl
-libclc-pocl/asinpi.cl
-libclc-pocl/atan2pi.cl
-libclc-pocl/atanpi.cl
-libclc-pocl/sinpi.cl
-libclc-pocl/cospi.cl
-libclc-pocl/tanpi.cl
-libclc-pocl/cos.cl
-libclc-pocl/cosh.cl
-libclc-pocl/sin.cl
-libclc-pocl/sinh.cl
-libclc-pocl/tan.cl
-libclc-pocl/tanh.cl
-libclc-pocl/sincos.cl
-libclc-pocl/sincos_helpers.cl
-libclc-pocl/acosh.cl
-libclc-pocl/asinh.cl
-libclc-pocl/atanh.cl
-libclc-pocl/ep_log.cl
-libclc-pocl/log2.cl
-libclc-pocl/logb.cl
-# currently unused
-#libclc/log1p.cl
-libclc-pocl/frexp.cl
-libclc-pocl/expfrexp.cl
-libclc-pocl/frfrexp.cl
-libclc-pocl/pown.cl
-libclc-pocl/powr.cl
-libclc-pocl/pow.cl
-libclc-pocl/rootn.cl
-libclc-pocl/pow_helpers.cl
-libclc-pocl/fmod.cl
-libclc-pocl/remainder.cl
-libclc-pocl/remquo.cl
-libclc-pocl/ocml_helpers.cl
-
-libclc-pocl/isinf.cl
-libclc-pocl/isnan.cl
-libclc-pocl/isfinite.cl
-libclc-pocl/isnormal.cl
-
-
-libclc/vtables_fp32.cl
-libclc/vtables_fp64.cl
-libclc/normalize.cl
-libclc/length.cl
-
-###################################################################
-
-sleef/libm/sleef_glue.cl
-
-sleef-pocl/scalars.cl
-sleef-pocl/acos.cl
-sleef-pocl/asin.cl
-sleef-pocl/atan2.cl
-sleef-pocl/atan.cl
-sleef-pocl/cbrt.cl
-sleef-pocl/ceil.cl
-sleef-pocl/erfc.cl
-sleef-pocl/erf.cl
-sleef-pocl/exp10.cl
-sleef-pocl/exp2.cl
-sleef-pocl/exp.cl
-sleef-pocl/expm1.cl
-sleef-pocl/fabs.cl
-sleef-pocl/fdim.cl
-sleef-pocl/floor.cl
-sleef-pocl/fma.cl
-sleef-pocl/fmax.cl
-sleef-pocl/fmin.cl
-#sleef-pocl/expfrexp.cl
-#sleef-pocl/frfrexp.cl
-#sleef-pocl/frexp.cl
-sleef-pocl/hypot.cl
-sleef-pocl/ilogb.cl
-sleef-pocl/ldexp.cl
-sleef-pocl/lgamma.cl
-sleef-pocl/lgamma_r.cl
-sleef-pocl/log10.cl
-sleef-pocl/log1p.cl
-sleef-pocl/log.cl
-sleef-pocl/modf.cl
-sleef-pocl/native_cos.cl
-sleef-pocl/native_sin.cl
-sleef-pocl/native_tan.cl
-sleef-pocl/nextafter.cl
-sleef-pocl/rint.cl
-sleef-pocl/round.cl
-sleef-pocl/sqrt.cl
-sleef-pocl/tgamma.cl
-sleef-pocl/trunc.cl
-)
+set(SOURCES_WITH_SLEEF
+    abs.cl
+    abs_diff.cl
+    add_sat.cl
+    all.cl
+    any.cl
+    as_type.cl
+    async_work_group_copy.cl
+    async_work_group_strided_copy.cl
+    atomics.cl
+    bitselect.cl
+    clamp.cl
+    clamp_int.cl
+    clz.cl
+    ctz.cl
+    convert_type.cl
+    copysign.cl
+    cross.cl
+    degrees.cl
+    distance.cl
+    dot.cl
+    fast_distance.cl
+    fast_length.cl
+    fast_normalize.cl
+    fmax_common.cl
+    fmin_common.cl
+    fract.cl
+    get_global_id.c
+    get_linear_id.cl
+    get_global_offset.c
+    get_global_size.c
+    get_group_id.c
+    get_image_array_size.cl
+    get_image_channel_data_type.cl
+    get_image_channel_order.cl
+    get_image_depth.cl
+    get_image_dim.cl
+    get_image_height.cl
+    get_image_width.cl
+    get_local_id.c
+    get_local_size.c
+    get_num_groups.c
+    get_work_dim.c
+    hadd.cl
+    half_cos.cl
+    half_divide.cl
+    half_exp10.cl
+    half_exp2.cl
+    half_exp.cl
+    half_log10.cl
+    half_log2.cl
+    half_log.cl
+    half_powr.cl
+    half_recip.cl
+    half_rsqrt.cl
+    half_sin.cl
+    half_sqrt.cl
+    half_tan.cl
+    isequal.cl
+    isgreater.cl
+    isgreaterequal.cl
+    isless.cl
+    islessequal.cl
+    islessgreater.cl
+    isnotequal.cl
+    isordered.cl
+    isunordered.cl
+    mad24.cl
+    mad.cl
+    mad_hi.cl
+    mad_sat.cl
+    max.cl
+    max_i.cl
+    maxmag.cl
+    mem_fence.c
+    min.cl
+    min_i.cl
+    minmag.cl
+    mix.cl
+    mul24.cl
+    mul_hi.cl
+    nan.cl
+    native_divide.cl
+    native_exp10.cl
+    native_exp2.cl
+    native_exp.cl
+    native_log10.cl
+    native_log2.cl
+    native_log.cl
+    native_powr.cl
+    native_recip.cl
+    native_rsqrt.cl
+    native_sqrt.cl
+    pocl_spawn_wg.c
+    pocl_run_all_wgs.c
+    popcount.cl
+    prefetch.cl
+    printf.c
+    radians.cl
+    read_image.cl
+    rhadd.cl
+    rotate.cl
+    rsqrt.cl
+    select.cl
+    shuffle.cl
+    signbit.cl
+    sign.cl
+    smoothstep.cl
+    step.cl
+    sub_sat.cl
+    upsample.cl
+    vload.cl
+    vload_half.cl
+    vload_store_half_f16c.c
+    vstore.cl
+    vstore_half.cl
+    wait_group_events.cl
+    work_group.cl
+    write_image.cl
+    # ##########################################################################
+    # from libclc
+    libclc-pocl/pocl_fma.cl
+    libclc-pocl/acospi.cl
+    libclc-pocl/asinpi.cl
+    libclc-pocl/atan2pi.cl
+    libclc-pocl/atanpi.cl
+    libclc-pocl/sinpi.cl
+    libclc-pocl/cospi.cl
+    libclc-pocl/tanpi.cl
+    libclc-pocl/cos.cl
+    libclc-pocl/cosh.cl
+    libclc-pocl/sin.cl
+    libclc-pocl/sinh.cl
+    libclc-pocl/tan.cl
+    libclc-pocl/tanh.cl
+    libclc-pocl/sincos.cl
+    libclc-pocl/sincos_helpers.cl
+    libclc-pocl/acosh.cl
+    libclc-pocl/asinh.cl
+    libclc-pocl/atanh.cl
+    libclc-pocl/ep_log.cl
+    libclc-pocl/log2.cl
+    libclc-pocl/logb.cl
+    # currently unused libclc/log1p.cl
+    libclc-pocl/frexp.cl
+    libclc-pocl/expfrexp.cl
+    libclc-pocl/frfrexp.cl
+    libclc-pocl/pown.cl
+    libclc-pocl/powr.cl
+    libclc-pocl/pow.cl
+    libclc-pocl/rootn.cl
+    libclc-pocl/pow_helpers.cl
+    libclc-pocl/fmod.cl
+    libclc-pocl/remainder.cl
+    libclc-pocl/remquo.cl
+    libclc-pocl/ocml_helpers.cl
+    libclc-pocl/isinf.cl
+    libclc-pocl/isnan.cl
+    libclc-pocl/isfinite.cl
+    libclc-pocl/isnormal.cl
+    libclc/vtables_fp32.cl
+    libclc/vtables_fp64.cl
+    libclc/normalize.cl
+    libclc/length.cl
+    # ##########################################################################
+    sleef/libm/sleef_glue.cl
+    sleef-pocl/scalars.cl
+    sleef-pocl/acos.cl
+    sleef-pocl/asin.cl
+    sleef-pocl/atan2.cl
+    sleef-pocl/atan.cl
+    sleef-pocl/cbrt.cl
+    sleef-pocl/ceil.cl
+    sleef-pocl/erfc.cl
+    sleef-pocl/erf.cl
+    sleef-pocl/exp10.cl
+    sleef-pocl/exp2.cl
+    sleef-pocl/exp.cl
+    sleef-pocl/expm1.cl
+    sleef-pocl/fabs.cl
+    sleef-pocl/fdim.cl
+    sleef-pocl/floor.cl
+    sleef-pocl/fma.cl
+    sleef-pocl/fmax.cl
+    sleef-pocl/fmin.cl
+    # sleef-pocl/expfrexp.cl sleef-pocl/frfrexp.cl sleef-pocl/frexp.cl
+    sleef-pocl/hypot.cl
+    sleef-pocl/ilogb.cl
+    sleef-pocl/ldexp.cl
+    sleef-pocl/lgamma.cl
+    sleef-pocl/lgamma_r.cl
+    sleef-pocl/log10.cl
+    sleef-pocl/log1p.cl
+    sleef-pocl/log.cl
+    sleef-pocl/modf.cl
+    sleef-pocl/native_cos.cl
+    sleef-pocl/native_sin.cl
+    sleef-pocl/native_tan.cl
+    sleef-pocl/nextafter.cl
+    sleef-pocl/rint.cl
+    sleef-pocl/round.cl
+    sleef-pocl/sqrt.cl
+    sleef-pocl/tgamma.cl
+    sleef-pocl/trunc.cl)
 
 if(KERNEL_TRIPLE_TARGETS_MSVC_TOOLCHAIN)
   list(APPEND SOURCES_WITH_SLEEF barrier-msvc.ll)
@@ -247,13 +234,16 @@ else()
   list(APPEND SOURCES_WITH_SLEEF barrier.ll)
 endif()
 
-list(APPEND SOURCES_WITH_SLEEF "host/addrspace_operators.ll" "host/addrspace_operators_spir.ll")
+list(APPEND SOURCES_WITH_SLEEF "host/addrspace_operators.ll"
+     "host/addrspace_operators_spir.ll")
 
-# if ENABLE_HOST_CPU_VECTORIZE_BUILTINS is enabled, use Clang/LLVM builtins
-# this makes vectorization of (some) OpenCL builtins possible,
-# while also making FP16 versions available (if FP16 is available)
+# if ENABLE_HOST_CPU_VECTORIZE_BUILTINS is enabled, use Clang/LLVM builtins this
+# makes vectorization of (some) OpenCL builtins possible, while also making FP16
+# versions available (if FP16 is available)
 if(ENABLE_HOST_CPU_VECTORIZE_BUILTINS) # implies CONFORMANCE=OFF
-  list(REMOVE_ITEM SOURCES_WITH_SLEEF
+  list(
+    REMOVE_ITEM
+    SOURCES_WITH_SLEEF
     libclc-pocl/cos.cl
     libclc-pocl/cosh.cl
     libclc-pocl/frexp.cl
@@ -270,7 +260,6 @@ if(ENABLE_HOST_CPU_VECTORIZE_BUILTINS) # implies CONFORMANCE=OFF
     libclc-pocl/sinh.cl
     libclc-pocl/tan.cl
     libclc-pocl/tanh.cl
-
     sleef-pocl/acos.cl
     sleef-pocl/asin.cl
     sleef-pocl/atan.cl
@@ -291,24 +280,21 @@ if(ENABLE_HOST_CPU_VECTORIZE_BUILTINS) # implies CONFORMANCE=OFF
     sleef-pocl/round.cl
     sleef-pocl/sqrt.cl
     sleef-pocl/trunc.cl
-
     libclc-pocl/pocl_fma.cl
-    sleef-pocl/scalars.cl
-    )
+    sleef-pocl/scalars.cl)
 
-  list(APPEND SOURCES_WITH_SLEEF
+  list(
+    APPEND
+    SOURCES_WITH_SLEEF
     acos.cl
     asin.cl
     atan.cl
-
     ceil.cl
     cos.cl
     cosh.cl
-
     exp.cl
     exp2.cl
     exp10.cl
-
     fabs.cl
     fmod.cl
     fdim.cl
@@ -317,59 +303,96 @@ if(ENABLE_HOST_CPU_VECTORIZE_BUILTINS) # implies CONFORMANCE=OFF
     fmin.cl
     floor.cl
     frexp.cl
-
     isfinite.cl
     isinf.cl
     isnan.cl
     isnormal.cl
-
     ldexp.cl
     log.cl
     log10.cl
     log2.cl
-
     pow.cl
     pown.cl
-
     rint.cl
     round.cl
-
     sin.cl
     sinh.cl
     sqrt.cl
-
     tan.cl
     tanh.cl
-
-    trunc.cl
-    )
-endif()  # ENABLE_HOST_CPU_VECTORIZE_BUILTINS
+    trunc.cl)
+endif() # ENABLE_HOST_CPU_VECTORIZE_BUILTINS
 
 # add conformant versions of FP16 builtins from CORE-Math library
 if(HOST_CPU_ENABLE_CL_KHR_FP16)
-  # if VECTORIZE_BUILTINS=ON, add only those FP16 functions for which we don't have LLVM builtins
-  # (= not present in the list above)
+  # if VECTORIZE_BUILTINS=ON, add only those FP16 functions for which we don't
+  # have LLVM builtins (= not present in the list above)
   if(ENABLE_HOST_CPU_VECTORIZE_BUILTINS) # implies CONFORMANCE=OFF
-    foreach(FILE IN ITEMS
-        acospif16.cl  hypotf16.cl    log2p1f16.cl    acoshf16.cl     exp10m1f16.cl
-        atanhf16.cl   cospif16.cl    exp2m1f16.cl    log10p1f16.cl   asinhf16.cl
-        atanpif16.cl  log1pf16.cl     sincosf16.cl    asinpif16.cl   rsqrtf16.cl
-        expm1f16.cl     tanpif16.cl     sinpif16.cl
-        # FP16 ops with no native FP16 builtin and no SLEEF FP16 path: not
-        # covered by the vectorized generic builtins above, so needed here too.
-        promotedf16.cl)
+    foreach(
+      FILE IN
+      ITEMS acospif16.cl
+            hypotf16.cl
+            log2p1f16.cl
+            acoshf16.cl
+            exp10m1f16.cl
+            atanhf16.cl
+            cospif16.cl
+            exp2m1f16.cl
+            log10p1f16.cl
+            asinhf16.cl
+            atanpif16.cl
+            log1pf16.cl
+            sincosf16.cl
+            asinpif16.cl
+            rsqrtf16.cl
+            expm1f16.cl
+            tanpif16.cl
+            sinpif16.cl
+            # FP16 ops with no native FP16 builtin and no SLEEF FP16 path: not
+            # covered by the vectorized generic builtins above, so needed here
+            # too.
+            promotedf16.cl)
       list(APPEND SOURCES_WITH_SLEEF "core-math/${FILE}")
     endforeach()
   else()
     # VECTORIZE_BUILTINS=OFF, add all available CORE-math functions
-    foreach(FILE IN ITEMS
-        acosf16.cl    exp10f16.cl     hypotf16.cl    log2p1f16.cl   sinhf16.cl
-        acoshf16.cl   cosf16.cl       exp10m1f16.cl  logf16.cl      sinpif16.cl
-        acospif16.cl  atanf16.cl     coshf16.cl      exp2f16.cl     log10f16.cl    rsqrtf16.cl
-        asinf16.cl    atanhf16.cl    cospif16.cl     exp2m1f16.cl   log10p1f16.cl  tanf16.cl
-        asinhf16.cl   atanpif16.cl   expf16.cl      log1pf16.cl    sincosf16.cl  tanhf16.cl
-        asinpif16.cl  expm1f16.cl    log2f16.cl     sinf16.cl     tanpif16.cl
-        additionalf16.cl  promotedf16.cl)
+    foreach(
+      FILE IN
+      ITEMS acosf16.cl
+            exp10f16.cl
+            hypotf16.cl
+            log2p1f16.cl
+            sinhf16.cl
+            acoshf16.cl
+            cosf16.cl
+            exp10m1f16.cl
+            logf16.cl
+            sinpif16.cl
+            acospif16.cl
+            atanf16.cl
+            coshf16.cl
+            exp2f16.cl
+            log10f16.cl
+            rsqrtf16.cl
+            asinf16.cl
+            atanhf16.cl
+            cospif16.cl
+            exp2m1f16.cl
+            log10p1f16.cl
+            tanf16.cl
+            asinhf16.cl
+            atanpif16.cl
+            expf16.cl
+            log1pf16.cl
+            sincosf16.cl
+            tanhf16.cl
+            asinpif16.cl
+            expm1f16.cl
+            log2f16.cl
+            sinf16.cl
+            tanpif16.cl
+            additionalf16.cl
+            promotedf16.cl)
       list(APPEND SOURCES_WITH_SLEEF "core-math/${FILE}")
     endforeach()
   endif()
@@ -394,31 +417,58 @@ endif()
 include("bitcode_rules")
 
 set(SLEEF_CL_KERNEL_DEPEND_HEADERS "")
-foreach(HEADER helperadvsimd.h   helperavx2.h     helperavx.h     helperpurec.h  helpersse2.h    misc.h helperavx2_128.h  helperavx512f.h  helperneon32.h  helpers.h      helpervecext.h)
-  list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/arch/${HEADER}")
+foreach(
+  HEADER
+  helperadvsimd.h
+  helperavx2.h
+  helperavx.h
+  helperpurec.h
+  helpersse2.h
+  misc.h
+  helperavx2_128.h
+  helperavx512f.h
+  helperneon32.h
+  helpers.h
+  helpervecext.h)
+  list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS
+       "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/arch/${HEADER}")
 endforeach()
-list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include/sleef_cl.h")
+list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS
+     "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include/sleef_cl.h")
 
 set(SLEEF_C_KERNEL_DEPEND_HEADERS ${SLEEF_CL_KERNEL_DEPEND_HEADERS})
 
 # only CL files depend on these
-foreach(SOURCE sleef_builtin.c  sleef_glue_auto.c  sleef_glue.cl)
-  list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/libm/${SOURCE}")
+foreach(SOURCE sleef_builtin.c sleef_glue_auto.c sleef_glue.cl)
+  list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS
+       "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/libm/${SOURCE}")
 endforeach()
 
 # only C files depend on these
-foreach(SOURCE dd.h df.h rename.h rename_vec128.h rename_vec256.h rename_vec512.h )
-  list(APPEND SLEEF_C_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/libm/${SOURCE}")
+foreach(SOURCE dd.h df.h rename.h rename_vec128.h rename_vec256.h
+               rename_vec512.h)
+  list(APPEND SLEEF_C_KERNEL_DEPEND_HEADERS
+       "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/libm/${SOURCE}")
 endforeach()
-list(APPEND SLEEF_C_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include/sleef.h")
+list(APPEND SLEEF_C_KERNEL_DEPEND_HEADERS
+     "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include/sleef.h")
 
 set(LIBCLC_KERNEL_DEPEND_HEADERS "")
-foreach(HEADER ep_log.h misc.h singlevec.h ocml_helpers.h sincos_helpers_fp32.h sincos_helpers_fp64.h vtables.h vtables_macros.h)
-  list(APPEND LIBCLC_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/libclc/${HEADER}")
+foreach(
+  HEADER
+  ep_log.h
+  misc.h
+  singlevec.h
+  ocml_helpers.h
+  sincos_helpers_fp32.h
+  sincos_helpers_fp64.h
+  vtables.h
+  vtables_macros.h)
+  list(APPEND LIBCLC_KERNEL_DEPEND_HEADERS
+       "${CMAKE_SOURCE_DIR}/lib/kernel/libclc/${HEADER}")
 endforeach()
 
-#=============================================================================
-
+# =============================================================================
 
 if(ENABLE_SLEEF)
   set(KERNEL_SOURCES ${SOURCES_WITH_SLEEF})
@@ -427,46 +477,53 @@ else()
 endif()
 
 if(HOST_DEVICE_CL_VERSION_MAJOR GREATER_EQUAL 2)
-if(MIPS)
-  message(STATUS "OpenCL 2.0 atomics are currently broken on MIPS")
-else()
-  message(STATUS "Using generic OpenCL 2.0 atomics")
-  list(APPEND KERNEL_SOURCES svm_atomics_host.cl svm_atomics.cl)
-endif()
+  if(MIPS)
+    message(STATUS "OpenCL 2.0 atomics are currently broken on MIPS")
+  else()
+    message(STATUS "Using generic OpenCL 2.0 atomics")
+    list(APPEND KERNEL_SOURCES svm_atomics_host.cl svm_atomics.cl)
+  endif()
 endif()
 
 # limit OpenCL C version to 3.0 when using LLVM < 23
 if((LLVM_VERSION_MAJOR LESS 23) AND (HOST_DEVICE_CL_VERSION_MAJOR EQUAL 3))
- set(HOST_DEVICE_CL_VERSION_MINOR 0)
+  set(HOST_DEVICE_CL_VERSION_MINOR 0)
 endif()
 
-set(HOST_DEVICE_CL_VERSION_3DIGIT "${HOST_DEVICE_CL_VERSION_MAJOR}${HOST_DEVICE_CL_VERSION_MINOR}0")
-set(HOST_DEVICE_CL_VERSION_STD  "${HOST_DEVICE_CL_VERSION_MAJOR}.${HOST_DEVICE_CL_VERSION_MINOR}")
+set(HOST_DEVICE_CL_VERSION_3DIGIT
+    "${HOST_DEVICE_CL_VERSION_MAJOR}${HOST_DEVICE_CL_VERSION_MINOR}0")
+set(HOST_DEVICE_CL_VERSION_STD
+    "${HOST_DEVICE_CL_VERSION_MAJOR}.${HOST_DEVICE_CL_VERSION_MINOR}")
 
 set(KERNEL_CL_FLAGS
-      "-Wall" "-Wno-unused-local-typedef" "-Xclang"
-      "-cl-std=CL${HOST_DEVICE_CL_VERSION_STD}"
-      "-D__OPENCL_C_VERSION__=${HOST_DEVICE_CL_VERSION_3DIGIT}"
-      "-DENABLE_CONFORMANCE=$<BOOL:${ENABLE_CONFORMANCE}>"
-      "-DENABLE_SLEEF=1"
-      ${KERNEL_CL_FLAGS})
+    "-Wall"
+    "-Wno-unused-local-typedef"
+    "-Xclang"
+    "-cl-std=CL${HOST_DEVICE_CL_VERSION_STD}"
+    "-D__OPENCL_C_VERSION__=${HOST_DEVICE_CL_VERSION_3DIGIT}"
+    "-DENABLE_CONFORMANCE=$<BOOL:${ENABLE_CONFORMANCE}>"
+    "-DENABLE_SLEEF=1"
+    ${KERNEL_CL_FLAGS})
 
-# this is necessary to avoid thousands of warnings printed
-# when compiling CORE-math library without doubles
+# this is necessary to avoid thousands of warnings printed when compiling
+# CORE-math library without doubles
 if(NOT HOST_CPU_ENABLE_CL_KHR_FP64)
   list(APPEND KERNEL_CL_FLAGS "-cl-single-precision-constant")
 endif()
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1657502
-# this *likely* shouldn't be a problem for PoCL, but needs testing
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1657502 this *likely* shouldn't
+# be a problem for PoCL, but needs testing
 list(APPEND KERNEL_CL_FLAGS "-Wno-psabi")
 
-set(HOST_DEVICE_VERSION_3DIGIT "${HOST_DEVICE_CL_VERSION_MAJOR}${HOST_DEVICE_CL_VERSION_MINOR}0")
+set(HOST_DEVICE_VERSION_3DIGIT
+    "${HOST_DEVICE_CL_VERSION_MAJOR}${HOST_DEVICE_CL_VERSION_MINOR}0")
 
 separate_arguments(HOST_CLANG_FLAGS)
 separate_arguments(HOST_LLC_FLAGS)
 set(DEVICE_C_FLAGS "-DPOCL_DEVICE_ADDRESS_BITS=${HOST_DEVICE_ADDRESS_BITS}")
-set(DEVICE_CL_FLAGS "-D__OPENCL_VERSION__=${HOST_DEVICE_VERSION_3DIGIT} -DPOCL_DEVICE_ADDRESS_BITS=${HOST_DEVICE_ADDRESS_BITS}")
+set(DEVICE_CL_FLAGS
+    "-D__OPENCL_VERSION__=${HOST_DEVICE_VERSION_3DIGIT} -DPOCL_DEVICE_ADDRESS_BITS=${HOST_DEVICE_ADDRESS_BITS}"
+)
 set(DEVICE_CL_FLAGS "${DEVICE_CL_FLAGS} ${HOST_DEVICE_EXTENSION_DEFINES}")
 separate_arguments(DEVICE_CL_FLAGS)
 separate_arguments(DEVICE_C_FLAGS)
@@ -527,31 +584,35 @@ function(x86_distro_variant_to_flags VARIANT OUT_LLC_FLAGS OUT_CLANG_FLAGS)
 
   endif()
 
-  set(${OUT_LLC_FLAGS} "${LLC_F}" PARENT_SCOPE)
-  set(${OUT_CLANG_FLAGS} "${CLANG_F}" PARENT_SCOPE)
+  set(${OUT_LLC_FLAGS}
+      "${LLC_F}"
+      PARENT_SCOPE)
+  set(${OUT_CLANG_FLAGS}
+      "${CLANG_F}"
+      PARENT_SCOPE)
 endfunction()
 
-###############################################################################
+# ##############################################################################
 
 function(compile_sleef VARIANT SLEEF_CONFIG SLEEF_CONFIG_NEW SLEEF_BC)
 
   unset(BC_FILE_LIST)
 
-  set(EXTRA_FLAGS "-DDORENAME;-DPURE_C;-I${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include")
+  set(EXTRA_FLAGS
+      "-DDORENAME;-DPURE_C;-I${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include")
 
-# disabled - this code uses libm
-#    compile_sleef_c_to_bc("c" "sleef/libm/sleef_builtin.c"
-#                          "${VARIANT}" BC_FILE_LIST ${EXTRA_FLAGS})
-  compile_sleef_c_to_bc("c" "sleef/libm/sleefsp.c"
-                        "${VARIANT}" BC_FILE_LIST ${EXTRA_FLAGS})
+  # disabled - this code uses libm compile_sleef_c_to_bc("c"
+  # "sleef/libm/sleef_builtin.c" "${VARIANT}" BC_FILE_LIST ${EXTRA_FLAGS})
+  compile_sleef_c_to_bc("c" "sleef/libm/sleefsp.c" "${VARIANT}" BC_FILE_LIST
+                        ${EXTRA_FLAGS})
 
   if(HOST_CPU_ENABLE_CL_KHR_FP64)
-    compile_sleef_c_to_bc("c" "sleef/libm/sleefdp.c"
-                          "${VARIANT}" BC_FILE_LIST ${EXTRA_FLAGS})
+    compile_sleef_c_to_bc("c" "sleef/libm/sleefdp.c" "${VARIANT}" BC_FILE_LIST
+                          ${EXTRA_FLAGS})
   endif()
 
-  compile_sleef_c_to_bc("c" "sleef/libm/sleef_glue_auto.c"
-                        "${VARIANT}" BC_FILE_LIST "-include" "${SLEEF_CONFIG}")
+  compile_sleef_c_to_bc("c" "sleef/libm/sleef_glue_auto.c" "${VARIANT}"
+                        BC_FILE_LIST "-include" "${SLEEF_CONFIG}")
 
   file(READ "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/test.c" TEST_SRC)
   file(READ "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/fma_test.c" FMA_TEST_SRC)
@@ -563,42 +624,42 @@ function(compile_sleef VARIANT SLEEF_CONFIG SLEEF_CONFIG_NEW SLEEF_BC)
     set(STR "#define SLEEF_DOUBLE_AVAILABLE\n")
     file(APPEND "${SLEEF_CONFIG_NEW}" "${STR}")
   endif()
-  # current SLEEF code does not have code for
-  # ARM32 NEON double vectors (if they even exist)
-  # TODO check properly!
+  # current SLEEF code does not have code for ARM32 NEON double vectors (if they
+  # even exist) TODO check properly!
   if(NOT ARM32)
     set(STR "#define SLEEF_DOUBLE_VEC_AVAILABLE\n")
     file(APPEND "${SLEEF_CONFIG_NEW}" "${STR}")
   endif()
-  # this is workaround for an inconsistency problem in SLEEF.
-  # certain functions (ldexp, ilogb, pown) with double2 type argument
-  # take/return int2 types. There are no int2 vectors on x86(-64)
-  # but there are on ARM, and the vint type definition in SLEEF is
-  # different - on x86 it's defined to be 128bit int32 vector,
-  # but that's not the case on ARM where it is a 64bit int32 vector.
+  # this is workaround for an inconsistency problem in SLEEF. certain functions
+  # (ldexp, ilogb, pown) with double2 type argument take/return int2 types.
+  # There are no int2 vectors on x86(-64) but there are on ARM, and the vint
+  # type definition in SLEEF is different - on x86 it's defined to be 128bit
+  # int32 vector, but that's not the case on ARM where it is a 64bit int32
+  # vector.
   if(X86)
     set(STR "#define SLEEF_VINT_IS_VLONG\n")
     file(APPEND "${SLEEF_CONFIG_NEW}" "${STR}")
   endif()
 
-  # the "runtime/clGetKernelArgInfo" requires working images with spir,
-  # that only works if we're using the new (generated) wrappers
-  set(HAVE_WORKING_IMAGES_WITH_SPIR OFF CACHE BOOL "image functions work with SPIR" FORCE)
+  # the "runtime/clGetKernelArgInfo" requires working images with spir, that
+  # only works if we're using the new (generated) wrappers
+  set(HAVE_WORKING_IMAGES_WITH_SPIR
+      OFF
+      CACHE BOOL "image functions work with SPIR" FORCE)
   if(HOST_DEVICE_ADDRESS_BITS EQUAL 32)
     set(SPIR_WRAPPER_FILE "host/spir_wrapper32.ll")
   else()
     if(RISCV)
-      # for RISC-V, always use the generated SPIR wrapper with 128bits,
-      # the CPU vector width does not affect the ABI
+      # for RISC-V, always use the generated SPIR wrapper with 128bits, the CPU
+      # vector width does not affect the ABI
       generate_cpu_spir_wrapper(cpu_riscv ${VARIANT} 128 SPIR_WRAPPER_FILE)
     elseif(X86 OR ARM)
-      # for X86-64 & ARM, use the generated SPIR wrapper,
-      # based on CPU's largest supported vector size (foreach loop below)
+      # for X86-64 & ARM, use the generated SPIR wrapper, based on CPU's largest
+      # supported vector size (foreach loop below)
       set(SPIR_WRAPPER_FILE "")
     else()
-      # for other CPUs, use a generic
-      # 64bit wrapper, this doesn't support vectors and misses
-      # some functions, but otherwise should mostly work
+      # for other CPUs, use a generic 64bit wrapper, this doesn't support
+      # vectors and misses some functions, but otherwise should mostly work
       set(SPIR_WRAPPER_FILE "host/spir_wrapper64.ll")
     endif()
   endif()
@@ -606,15 +667,22 @@ function(compile_sleef VARIANT SLEEF_CONFIG SLEEF_CONFIG_NEW SLEEF_BC)
   foreach(VECSIZE "512" "256" "128")
 
     set(EXTRA_FLAGS "-DDORENAME;-DVEC${VECSIZE}")
-    custom_try_compile_any(1 "${HOST_CLANG}" "c" "${TEST_SRC}" RES
-      ${CLANG_FLAGS} ${EXTRA_FLAGS} "-c")
+    custom_try_compile_any(
+      1
+      "${HOST_CLANG}"
+      "c"
+      "${TEST_SRC}"
+      RES
+      ${CLANG_FLAGS}
+      ${EXTRA_FLAGS}
+      "-c")
 
     if(${RES} EQUAL "0")
       compile_sleef_c_to_bc("v${VECSIZE}" "sleef/libm/sleefsimdsp.c"
                             "${VARIANT}" BC_FILE_LIST ${EXTRA_FLAGS})
       if(NOT ARM32)
-      compile_sleef_c_to_bc("v${VECSIZE}" "sleef/libm/sleefsimddp.c"
-                            "${VARIANT}" BC_FILE_LIST ${EXTRA_FLAGS})
+        compile_sleef_c_to_bc("v${VECSIZE}" "sleef/libm/sleefsimddp.c"
+                              "${VARIANT}" BC_FILE_LIST ${EXTRA_FLAGS})
       endif()
       message(STATUS "${VARIANT} SLEEF: ${VECSIZE}bit vectors available.")
 
@@ -622,20 +690,31 @@ function(compile_sleef VARIANT SLEEF_CONFIG SLEEF_CONFIG_NEW SLEEF_BC)
       file(APPEND "${SLEEF_CONFIG_NEW}" "${STR}")
 
       if(HOST_CPU_ENABLE_SPIRV AND NOT SPIR_WRAPPER_FILE)
-        if (ARM)
-          generate_cpu_spir_wrapper(cpu_arm ${VARIANT} ${VECSIZE} SPIR_WRAPPER_FILE)
+        if(ARM)
+          generate_cpu_spir_wrapper(cpu_arm ${VARIANT} ${VECSIZE}
+                                    SPIR_WRAPPER_FILE)
         endif()
         if(X86)
-          generate_cpu_spir_wrapper(cpu_x86 ${VARIANT} ${VECSIZE} SPIR_WRAPPER_FILE)
+          generate_cpu_spir_wrapper(cpu_x86 ${VARIANT} ${VECSIZE}
+                                    SPIR_WRAPPER_FILE)
         endif()
-        set(HAVE_WORKING_IMAGES_WITH_SPIR ON CACHE BOOL "image functions work with SPIR" FORCE)
+        set(HAVE_WORKING_IMAGES_WITH_SPIR
+            ON
+            CACHE BOOL "image functions work with SPIR" FORCE)
       endif()
     else()
       message(STATUS "${VARIANT} SLEEF: ${VECSIZE}bit vectors NOT available.")
     endif()
 
-    custom_try_compile_any(1 "${HOST_CLANG}" "c" "${FMA_TEST_SRC}" RES
-      ${CLANG_FLAGS} ${EXTRA_FLAGS} "-c")
+    custom_try_compile_any(
+      1
+      "${HOST_CLANG}"
+      "c"
+      "${FMA_TEST_SRC}"
+      RES
+      ${CLANG_FLAGS}
+      ${EXTRA_FLAGS}
+      "-c")
     if(${RES} EQUAL "0")
       unset(STR)
       set(STR "#define HAVE_FMA32_${VECSIZE}\n")
@@ -652,14 +731,18 @@ function(compile_sleef VARIANT SLEEF_CONFIG SLEEF_CONFIG_NEW SLEEF_BC)
 
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${VARIANT}")
   set(SLEEF_BC "${CMAKE_CURRENT_BINARY_DIR}/${VARIANT}/sleef.bc")
-  set(SLEEF_BC "${CMAKE_CURRENT_BINARY_DIR}/${VARIANT}/sleef.bc" PARENT_SCOPE)
+  set(SLEEF_BC
+      "${CMAKE_CURRENT_BINARY_DIR}/${VARIANT}/sleef.bc"
+      PARENT_SCOPE)
 
   message(STATUS "${VARIANT} SLEEF bc list: ${BC_FILE_LIST}")
   message(STATUS "${VARIANT} SLEEF bc: ${SLEEF_BC}")
 
-  set(LINK_OPT_COMMAND COMMAND "${HOST_LLVM_LINK}" "--suppress-warnings" "-o" "${SLEEF_BC}" ${BC_FILE_LIST})
+  set(LINK_OPT_COMMAND COMMAND "${HOST_LLVM_LINK}" "--suppress-warnings" "-o"
+                       "${SLEEF_BC}" ${BC_FILE_LIST})
 
-  add_custom_command( OUTPUT "${SLEEF_BC}"
+  add_custom_command(
+    OUTPUT "${SLEEF_BC}"
     DEPENDS ${BC_FILE_LIST}
     COMMAND ${LINK_OPT_COMMAND}
     COMMENT "Linking & optimizing SLEEF for ${VARIANT}: ${SLEEF_BC}"
@@ -667,120 +750,149 @@ function(compile_sleef VARIANT SLEEF_CONFIG SLEEF_CONFIG_NEW SLEEF_BC)
 
 endfunction()
 
-###############################################################################
+# ##############################################################################
 
 foreach(CPU_VARIANT IN LISTS KERNELLIB_HOST_CPU_VARIANTS)
 
-if(CPU_VARIANT MATCHES "native")
-  set(VARIANT "${SELECTED_HOST_CPU}")
-else()
-  set(VARIANT "${CPU_VARIANT}")
-endif()
-
-if(X86)
-  x86_distro_variant_to_flags("${VARIANT}" LLC_CPUFLAGS CLANG_CPUFLAGS)
-elseif(RISCV)
-  set(CLANG_CPUFLAGS "${CLANG_MARCH_FLAG}${VARIANT} -mabi=${HOST_CPU_TARGET_ABI}")
-
-  if(LLVM_MARCH)
-    set(CLANG_CPUFLAGS "${CLANG_CPUFLAGS} -march=${LLVM_MARCH}")
+  if(CPU_VARIANT MATCHES "native")
+    set(VARIANT "${SELECTED_HOST_CPU}")
+  else()
+    set(VARIANT "${CPU_VARIANT}")
   endif()
 
-  set(LLC_CPUFLAGS "-mcpu=${VARIANT} -march=${LLVM_MARCH}")
-else()
-  set(CLANG_CPUFLAGS "${CLANG_MARCH_FLAG}${VARIANT}")
-  set(LLC_CPUFLAGS "-mcpu=${VARIANT}")
-endif()
+  if(X86)
+    x86_distro_variant_to_flags("${VARIANT}" LLC_CPUFLAGS CLANG_CPUFLAGS)
+  elseif(RISCV)
+    set(CLANG_CPUFLAGS
+        "${CLANG_MARCH_FLAG}${VARIANT} -mabi=${HOST_CPU_TARGET_ABI}")
 
-if("${VARIANT}" STREQUAL "generic")
-  set(CLANG_CPUFLAGS "")
-  set(LLC_CPUFLAGS "")
-endif()
+    if(LLVM_MARCH)
+      set(CLANG_CPUFLAGS "${CLANG_CPUFLAGS} -march=${LLVM_MARCH}")
+    endif()
 
-separate_arguments(CLANG_CPUFLAGS)
-separate_arguments(LLC_CPUFLAGS)
-set(CLANG_FLAGS ${HOST_CLANG_FLAGS} ${CLANG_CPUFLAGS}
-                "-ffreestanding" "-emit-llvm" "-ffp-contract=off")
-if(ENABLE_PRINTF_IMMEDIATE_FLUSH)
-  list(APPEND CLANG_FLAGS "-DENABLE_PRINTF_IMMEDIATE_FLUSH")
-endif()
-
-set(LLC_FLAGS ${HOST_LLC_FLAGS} ${LLC_CPUFLAGS})
-
-if(ENABLE_SLEEF)
-
-  # write SLEEF config for this CPU
-  set(SLEEF_CONFIG "${CMAKE_BINARY_DIR}/sleef_config_temp_${VARIANT}.h")
-  set(SLEEF_CONFIG_NEW "${SLEEF_CONFIG}.new")
-  set(STR "/* SLEEF library configuration for ${VARIANT} CPU */ \n")
-  file(WRITE "${SLEEF_CONFIG_NEW}" "${STR}")
-
-  # compile SLEEF library for the cpu variant
-  unset(SLEEF_BC)
-  compile_sleef("${VARIANT}" "${SLEEF_CONFIG}" "${SLEEF_CONFIG_NEW}" SLEEF_BC)
-
-  unset(EXTRA_PARAMS)
-  if(CMAKE_VERSION VERSION_GREATER "3.2")
-    set(EXTRA_PARAMS BYPRODUCTS "${SLEEF_CONFIG}")
+    set(LLC_CPUFLAGS "-mcpu=${VARIANT} -march=${LLVM_MARCH}")
+  else()
+    set(CLANG_CPUFLAGS "${CLANG_MARCH_FLAG}${VARIANT}")
+    set(LLC_CPUFLAGS "-mcpu=${VARIANT}")
   endif()
 
-  add_custom_command(
-    OUTPUT "${SLEEF_CONFIG}.witness"
-    ${EXTRA_PARAMS}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-          "${SLEEF_CONFIG_NEW}" "${SLEEF_CONFIG}"
-    COMMAND ${CMAKE_COMMAND} -E touch "${SLEEF_CONFIG}.witness"
-  )
-  add_custom_target("sleef_config_${VARIANT}" DEPENDS "${SLEEF_CONFIG}.witness")
+  if("${VARIANT}" STREQUAL "generic")
+    set(CLANG_CPUFLAGS "")
+    set(LLC_CPUFLAGS "")
+  endif()
 
-  # compile kernel
-  make_kernel_bc(KERNEL_BC "${OCL_KERNEL_TARGET}-${VARIANT}" "${VARIANT}"
-                 1 "${SLEEF_BC}" "${SLEEF_CONFIG}" ${KERNEL_SOURCES})
+  separate_arguments(CLANG_CPUFLAGS)
+  separate_arguments(LLC_CPUFLAGS)
+  set(CLANG_FLAGS ${HOST_CLANG_FLAGS} ${CLANG_CPUFLAGS} "-ffreestanding"
+                  "-emit-llvm" "-ffp-contract=off")
+  if(ENABLE_PRINTF_IMMEDIATE_FLUSH)
+    list(APPEND CLANG_FLAGS "-DENABLE_PRINTF_IMMEDIATE_FLUSH")
+  endif()
 
-else()
-  make_kernel_bc(KERNEL_BC "${OCL_KERNEL_TARGET}-${VARIANT}" "${VARIANT}"
-                 0 0 0 ${KERNEL_SOURCES})
-endif()
+  set(LLC_FLAGS ${HOST_LLC_FLAGS} ${LLC_CPUFLAGS})
 
-# just debug
-message(STATUS "Host Kernel BC for \"${VARIANT}\": ${KERNEL_BC}")
+  if(ENABLE_SLEEF)
 
-list(APPEND KERNEL_BC_LIST "${KERNEL_BC}")
-set(KERNEL_BC_LIST "${KERNEL_BC_LIST}" PARENT_SCOPE)
+    # write SLEEF config for this CPU
+    set(SLEEF_CONFIG "${CMAKE_BINARY_DIR}/sleef_config_temp_${VARIANT}.h")
+    set(SLEEF_CONFIG_NEW "${SLEEF_CONFIG}.new")
+    set(STR "/* SLEEF library configuration for ${VARIANT} CPU */ \n")
+    file(WRITE "${SLEEF_CONFIG_NEW}" "${STR}")
 
-# a target is needed...
-add_custom_target("kernel_host_${VARIANT}" DEPENDS ${KERNEL_BC})
+    # compile SLEEF library for the cpu variant
+    unset(SLEEF_BC)
+    compile_sleef("${VARIANT}" "${SLEEF_CONFIG}" "${SLEEF_CONFIG_NEW}" SLEEF_BC)
 
-list(APPEND KERNEL_TARGET_LIST "kernel_host_${VARIANT}")
-set(KERNEL_TARGET_LIST "${KERNEL_TARGET_LIST}" PARENT_SCOPE)
+    unset(EXTRA_PARAMS)
+    if(CMAKE_VERSION VERSION_GREATER "3.2")
+      set(EXTRA_PARAMS BYPRODUCTS "${SLEEF_CONFIG}")
+    endif()
 
-install(FILES "${KERNEL_BC}"
-        DESTINATION "${POCL_INSTALL_PRIVATE_DATADIR_REL}" COMPONENT "lib")
+    add_custom_command(
+      OUTPUT "${SLEEF_CONFIG}.witness" ${EXTRA_PARAMS}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SLEEF_CONFIG_NEW}"
+              "${SLEEF_CONFIG}"
+      COMMAND ${CMAKE_COMMAND} -E touch "${SLEEF_CONFIG}.witness")
+    add_custom_target("sleef_config_${VARIANT}"
+                      DEPENDS "${SLEEF_CONFIG}.witness")
+
+    # compile kernel
+    make_kernel_bc(
+      KERNEL_BC
+      "${OCL_KERNEL_TARGET}-${VARIANT}"
+      "${VARIANT}"
+      1
+      "${SLEEF_BC}"
+      "${SLEEF_CONFIG}"
+      ${KERNEL_SOURCES})
+
+  else()
+    make_kernel_bc(
+      KERNEL_BC
+      "${OCL_KERNEL_TARGET}-${VARIANT}"
+      "${VARIANT}"
+      0
+      0
+      0
+      ${KERNEL_SOURCES})
+  endif()
+
+  # just debug
+  message(STATUS "Host Kernel BC for \"${VARIANT}\": ${KERNEL_BC}")
+
+  list(APPEND KERNEL_BC_LIST "${KERNEL_BC}")
+  set(KERNEL_BC_LIST
+      "${KERNEL_BC_LIST}"
+      PARENT_SCOPE)
+
+  # a target is needed...
+  add_custom_target("kernel_host_${VARIANT}" DEPENDS ${KERNEL_BC})
+
+  list(APPEND KERNEL_TARGET_LIST "kernel_host_${VARIANT}")
+  set(KERNEL_TARGET_LIST
+      "${KERNEL_TARGET_LIST}"
+      PARENT_SCOPE)
+
+  install(
+    FILES "${KERNEL_BC}"
+    DESTINATION "${POCL_INSTALL_PRIVATE_DATADIR_REL}"
+    COMPONENT "lib")
 
 endforeach()
-
 
 # the runtime-free MSVC kernel link needs the bundled helper objects
 if(CPU_USE_LLD_LINK AND MSVC)
   set(LIBCHKSTK_OBJ "${CMAKE_CURRENT_BINARY_DIR}/libchkstk.obj")
   set(LIBCHKSTK_SRC "${CMAKE_CURRENT_SOURCE_DIR}/libchkstk.S")
-  add_custom_command( OUTPUT "${LIBCHKSTK_OBJ}"
-      DEPENDS ${LIBCHKSTK_SRC}
-      COMMAND ${HOST_CLANG} -DCHKSTK -o ${LIBCHKSTK_OBJ} -c ${LIBCHKSTK_SRC}
-      COMMENT "Compiling CHKSTK" VERBATIM)
+  add_custom_command(
+    OUTPUT "${LIBCHKSTK_OBJ}"
+    DEPENDS ${LIBCHKSTK_SRC}
+    COMMAND ${HOST_CLANG} -DCHKSTK -o ${LIBCHKSTK_OBJ} -c ${LIBCHKSTK_SRC}
+    COMMENT "Compiling CHKSTK"
+    VERBATIM)
 
   set(LIBMEMORY_OBJ "${CMAKE_CURRENT_BINARY_DIR}/libmemory.obj")
   set(LIBMEMORY_SRC "${CMAKE_CURRENT_SOURCE_DIR}/libmemory.c")
-  add_custom_command( OUTPUT "${LIBMEMORY_OBJ}"
-      DEPENDS ${LIBMEMORY_SRC}
-      COMMAND ${HOST_CLANG} -DMEMSET -DMEMCPY -DMEMMOVE -DMEMCMP -DSTRLEN -Os -fno-builtin --target=${LLVM_HOST_TARGET} -o ${LIBMEMORY_OBJ} -c ${LIBMEMORY_SRC}
-      COMMENT "Linking STRING library" VERBATIM)
+  add_custom_command(
+    OUTPUT "${LIBMEMORY_OBJ}"
+    DEPENDS ${LIBMEMORY_SRC}
+    COMMAND
+      ${HOST_CLANG} -DMEMSET -DMEMCPY -DMEMMOVE -DMEMCMP -DSTRLEN -Os
+      -fno-builtin --target=${LLVM_HOST_TARGET} -o ${LIBMEMORY_OBJ} -c
+      ${LIBMEMORY_SRC}
+    COMMENT "Linking STRING library"
+    VERBATIM)
 
-  add_custom_target("kernel_host_freestanding" DEPENDS ${LIBCHKSTK_OBJ} ${LIBMEMORY_OBJ})
+  add_custom_target("kernel_host_freestanding" DEPENDS ${LIBCHKSTK_OBJ}
+                                                       ${LIBMEMORY_OBJ})
 
   list(APPEND KERNEL_TARGET_LIST "kernel_host_freestanding")
-  set(KERNEL_TARGET_LIST "${KERNEL_TARGET_LIST}" PARENT_SCOPE)
+  set(KERNEL_TARGET_LIST
+      "${KERNEL_TARGET_LIST}"
+      PARENT_SCOPE)
 
-  install(FILES "${LIBCHKSTK_OBJ}" "${LIBMEMORY_OBJ}"
-        DESTINATION "${POCL_INSTALL_PRIVATE_DATADIR_REL}" COMPONENT "lib")
+  install(
+    FILES "${LIBCHKSTK_OBJ}" "${LIBMEMORY_OBJ}"
+    DESTINATION "${POCL_INSTALL_PRIVATE_DATADIR_REL}"
+    COMPONENT "lib")
 endif()

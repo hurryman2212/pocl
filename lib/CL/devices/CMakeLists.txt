@@ -1,43 +1,44 @@
-#=============================================================================
-#   CMake build system files
+# =============================================================================
+# CMake build system files
 #
-#   Copyright (c) 2014-2020 pocl developers
+# Copyright (c) 2014-2020 pocl developers
 #
-#   Permission is hereby granted, free of charge, to any person obtaining a copy
-#   of this software and associated documentation files (the "Software"), to deal
-#   in the Software without restriction, including without limitation the rights
-#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#   copies of the Software, and to permit persons to whom the Software is
-#   furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-#   The above copyright notice and this permission notice shall be included in
-#   all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-#   THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
-#=============================================================================
+# =============================================================================
 
 if(ENABLE_LOADABLE_DRIVERS)
 
   function(add_pocl_device_library name)
     add_library(${name} SHARED ${ARGN})
     harden("${name}")
-    target_link_libraries(${name} PUBLIC ${POCL_PUBLIC_LINK_LIST} PRIVATE ${POCL_LIBRARY_NAME} ${POCL_PRIVATE_LINK_LIST})
+    target_link_libraries(
+      ${name}
+      PUBLIC ${POCL_PUBLIC_LINK_LIST}
+      PRIVATE ${POCL_LIBRARY_NAME} ${POCL_PRIVATE_LINK_LIST})
     if(WIN32)
       set_target_properties(${name} PROPERTIES PREFIX "")
     endif()
-    install(TARGETS ${name}
-            LIBRARY DESTINATION ${POCL_INSTALL_PRIVATE_LIBDIR_REL}
-            COMPONENT "lib"
-            RUNTIME DESTINATION ${POCL_INSTALL_PRIVATE_LIBDIR_REL}
-            COMPONENT "lib"
-    )
+    install(
+      TARGETS ${name}
+      LIBRARY DESTINATION ${POCL_INSTALL_PRIVATE_LIBDIR_REL} COMPONENT "lib"
+      RUNTIME DESTINATION ${POCL_INSTALL_PRIVATE_LIBDIR_REL} COMPONENT "lib")
   endfunction()
 
 else()
@@ -51,25 +52,25 @@ endif()
 if(BUILD_BASIC)
   add_subdirectory("basic")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-basic>")
+                        "$<TARGET_OBJECTS:pocl-devices-basic>")
 endif()
 
 if(BUILD_PTHREAD)
   add_subdirectory("pthread")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-pthread>")
+                        "$<TARGET_OBJECTS:pocl-devices-pthread>")
 endif()
 
 if(BUILD_ALMAIF)
   add_subdirectory("almaif")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-almaif>")
+                        "$<TARGET_OBJECTS:pocl-devices-almaif>")
 endif()
 
 if(BUILD_TBB)
   add_subdirectory("tbb")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-tbb>")
+                        "$<TARGET_OBJECTS:pocl-devices-tbb>")
   if(NOT ENABLE_LOADABLE_DRIVERS)
     list(APPEND POCL_DEVICES_LINK_LIST ${TBB_IMPORTED_TARGETS})
   endif()
@@ -78,7 +79,7 @@ endif()
 if(BUILD_REMOTE_CLIENT)
   add_subdirectory("remote")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-remote>")
+                        "$<TARGET_OBJECTS:pocl-devices-remote>")
 
   if(ENABLE_REMOTE_DISCOVERY_AVAHI)
     find_library(AVAHI_COMMON_LIB NAMES avahi-common REQUIRED)
@@ -111,7 +112,7 @@ if(ENABLE_TCE)
   include_directories(AFTER "tce")
   add_subdirectory("tce")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-ttasim>")
+                        "$<TARGET_OBJECTS:pocl-devices-ttasim>")
 
   if(NOT ENABLE_LOADABLE_DRIVERS)
     list(APPEND POCL_DEVICES_LINK_LIST ${TCE_LIBS})
@@ -123,11 +124,11 @@ if(ENABLE_PROXY_DEVICE)
     add_subdirectory("tree_sitter")
     list(APPEND POCL_DEVICES_LINK_LIST pocl_tree_sitter_utils tree-sitter)
     set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-            "$<TARGET_OBJECTS:pocl_tree_sitter_utils>")
-  endif ()
+                          "$<TARGET_OBJECTS:pocl_tree_sitter_utils>")
+  endif()
   add_subdirectory("proxy")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-proxy>")
+                        "$<TARGET_OBJECTS:pocl-devices-proxy>")
   # link to libOpenCL(-stub)
   if(NOT PROXY_USE_LIBOPENCL_STUB)
     list(APPEND POCL_DEVICES_LINK_LIST OpenCL)
@@ -139,7 +140,7 @@ if(ENABLE_HSA)
   include_directories(AFTER "${HSA_INCLUDES}")
   add_subdirectory("hsa")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-hsa>")
+                        "$<TARGET_OBJECTS:pocl-devices-hsa>")
 
   if(NOT ENABLE_LOADABLE_DRIVERS)
     list(APPEND POCL_DEVICES_LINK_LIST ${HSALIB})
@@ -150,7 +151,7 @@ if(ENABLE_VULKAN)
   include_directories(AFTER "${Vulkan_INCLUDE_DIR}")
   add_subdirectory("vulkan")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-vulkan>")
+                        "$<TARGET_OBJECTS:pocl-devices-vulkan>")
 
   if(NOT ENABLE_LOADABLE_DRIVERS)
     list(APPEND POCL_DEVICES_LINK_LIST ${Vulkan_LIBRARY})
@@ -161,7 +162,7 @@ if(ENABLE_LEVEL0)
   include_directories(AFTER "${LEVEL0_INCLUDE_DIRS}")
   add_subdirectory("level0")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-level0>")
+                        "$<TARGET_OBJECTS:pocl-devices-level0>")
 
   if(NOT ENABLE_LOADABLE_DRIVERS)
     list(APPEND POCL_DEVICES_LINK_LIST PkgConfig::LEVEL0)
@@ -171,25 +172,36 @@ endif()
 if(ENABLE_CUDA)
   add_subdirectory("cuda")
   set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices-cuda>")
+                        "$<TARGET_OBJECTS:pocl-devices-cuda>")
 
   if(NOT ENABLE_LOADABLE_DRIVERS)
     list(APPEND POCL_DEVICES_LINK_LIST ${CUDA_POCL_TARGETS})
   endif()
 endif()
 
-
 set(POCL_DEVICES_SOURCES
-  devices.h  devices.c
-  bufalloc.c  bufalloc.h
-  common.h  common.c
-  pocl_local_size.h  pocl_local_size.c
-  common_driver.h  common_driver.c
-  spirv.hh  spirv_parser.hh  spirv_parser.cc
-  spirv_queries.h  spirv_queries.cc
-  pocl_spirv_utils.cc pocl_spirv_utils.hh
-  printf_base.c printf_base.h printf_buffer.c
-  cpuinfo.c  cpuinfo.h)
+    devices.h
+    devices.c
+    bufalloc.c
+    bufalloc.h
+    common.h
+    common.c
+    pocl_local_size.h
+    pocl_local_size.c
+    common_driver.h
+    common_driver.c
+    spirv.hh
+    spirv_parser.hh
+    spirv_parser.cc
+    spirv_queries.h
+    spirv_queries.cc
+    pocl_spirv_utils.cc
+    pocl_spirv_utils.hh
+    printf_base.c
+    printf_base.h
+    printf_buffer.c
+    cpuinfo.c
+    cpuinfo.h)
 
 if(ENABLE_HOST_CPU_DEVICES)
   if(HAVE_LIBXSMM)
@@ -216,27 +228,29 @@ if(HAVE_LIBXSMM) # for includedir flags
 endif()
 if(HAVE_LIBJPEG_TURBO)
   target_link_libraries("pocl-devices" PRIVATE ${LIBJPEG_TARGET})
-endif ()
+endif()
 if(HAVE_ONNXRT)
   target_link_libraries("pocl-devices" PRIVATE onnxruntime::onnxruntime)
-endif ()
+endif()
 if(HAVE_OPENCV)
   target_link_libraries("pocl-devices" PRIVATE opencv_dnn)
-endif ()
+endif()
 if(BUILD_SHARED_LIBS AND MSVC)
   # Inject __declspec(dllexport).
   target_compile_definitions("pocl-devices" PRIVATE EXPORT_POCL_LIB)
   target_compile_definitions("pocl-devices" INTERFACE IMPORT_POCL_LIB)
 endif()
 
-
 if(HAVE_TREE_SITTER)
   target_link_libraries("pocl-devices" PRIVATE tree-sitter)
 endif()
 
-set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}"
-    "$<TARGET_OBJECTS:pocl-devices>")
+set(POCL_DEVICES_OBJS "${POCL_DEVICES_OBJS}" "$<TARGET_OBJECTS:pocl-devices>")
 harden("pocl-devices")
 
-set(POCL_DEVICES_LINK_LIST ${POCL_DEVICES_LINK_LIST} PARENT_SCOPE)
-set(POCL_DEVICES_OBJS ${POCL_DEVICES_OBJS} PARENT_SCOPE)
+set(POCL_DEVICES_LINK_LIST
+    ${POCL_DEVICES_LINK_LIST}
+    PARENT_SCOPE)
+set(POCL_DEVICES_OBJS
+    ${POCL_DEVICES_OBJS}
+    PARENT_SCOPE)
