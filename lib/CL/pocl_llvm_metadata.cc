@@ -37,6 +37,7 @@ IGNORE_COMPILER_WARNING("-Wunused-parameter")
 #include <llvm/ADT/SmallVector.h>
 
 #include <iostream>
+#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -550,24 +551,23 @@ int pocl_llvm_get_kernels_metadata(cl_program program, unsigned device_i) {
       if (is_image_type(ARGt, ArgInfo, meta->has_arg_metadata)) {
         ArgInfo.type = POCL_ARG_TYPE_IMAGE;
         ArgInfo.type_size = sizeof(cl_mem);
-      } else
-      if (is_sampler_type(ArgInfo, meta->has_arg_metadata)) {
+      } else if (is_sampler_type(ArgInfo, meta->has_arg_metadata)) {
         ArgInfo.type = POCL_ARG_TYPE_SAMPLER;
         ArgInfo.type_size = sizeof(cl_sampler);
-      } else
-
-      if (ARGp) {
+      } else if (ARGp) {
         ArgInfo.type = POCL_ARG_TYPE_POINTER;
         ArgInfo.type_size = sizeof(cl_mem);
-      // structs, classes and arrays are missing; calculating
-      // their size is not trivial
-      } else if (ARGt->isSized() && ARGt->isSingleValueType()) {
+      } else if (ARGt->isSized()) {
         TypeSize TS = input->getDataLayout().getTypeAllocSize(ARGt);
-        ArgInfo.type_size = TS.getFixedValue();
+        if (TS.isScalable() || TS.getKnownMinValue() == 0 ||
+            TS.getKnownMinValue() > std::numeric_limits<unsigned>::max()) {
+          delete TD;
+          return CL_INVALID_KERNEL;
+        }
+        ArgInfo.type_size = static_cast<unsigned>(TS.getFixedValue());
       } else {
-        POCL_MSG_PRINT_LLVM(
-            "Arg %u (%s) : Don't know how to determine type size\n", i,
-            ArgInfo.type_name);
+        delete TD;
+        return CL_INVALID_KERNEL;
       }
       i++;
     }
