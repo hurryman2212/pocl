@@ -505,6 +505,8 @@ struct pocl_device_ops {
   /** Optional command-state cleanup; must not invoke user callbacks under
    * locks. */
   void (*free_command) (_cl_command_node *node);
+  /* Finish node/execution ownership before making the event terminal. */
+  cl_bool release_command_before_event;
 
   /****** The API for the out-of-order execution API and asynchronous devices.
 
@@ -535,6 +537,9 @@ struct pocl_device_ops {
    * commands will be eventually executed. It is up to the device what happens
    * here, if anything. See basic and pthread for reference.*/
   void (*flush) (cl_device_id device, cl_command_queue cq);
+
+  /** Optional explicit flush with a standard OpenCL failure result. */
+  cl_int (*flush_checked) (cl_device_id device, cl_command_queue cq);
 
   /**
    * Used to communicate to a device driver that an event, it has
@@ -624,7 +629,8 @@ struct pocl_device_ops {
    */
   unsigned (*get_auxiliary_context_count) (cl_device_id device);
 
-  /** Close auxiliary contexts before runtime unload, outside PoCL locks. */
+  /** Close auxiliary contexts before runtime unload, outside PoCL locks.
+   * NULL requests driver-wide retired initialization cleanup, even with no devices. */
   cl_int (*prepare_uninit) (cl_device_id device);
 
   /** Uninitializes the driver for a particular device.
@@ -689,6 +695,14 @@ struct pocl_device_ops {
 
   void (*svm_free) (cl_device_id dev, void *svm_ptr);
   void *(*svm_alloc) (cl_device_id dev, cl_svm_mem_flags flags, size_t size);
+
+  /** Context-aware pointer allocation; type 0 is SVM, otherwise Intel USM type. */
+  void *(*alloc_pointer) (cl_device_id device, cl_context context, unsigned type,
+                          cl_bitfield flags, size_t size, size_t alignment,
+                          cl_int *error);
+  /** Context-aware pointer release; failures retain native state for retry. */
+  cl_int (*free_pointer) (cl_device_id device, cl_context context, void *pointer,
+                          cl_bool blocking, cl_bool implicit);
   void (*svm_map) (cl_device_id dev, void *svm_ptr);
   void (*svm_unmap) (cl_device_id dev, void *svm_ptr);
 
@@ -852,6 +866,13 @@ struct pocl_device_ops {
   int (*free_kernel) (cl_device_id device, cl_program program,
                       cl_kernel kernel, unsigned program_device_i);
 
+  /** The driver validates original option bytes using its own compiler.
+   * Native devices in a mixed build still require the common parser. */
+  cl_bool external_build_options;
+  /* Synchronous admission around the common compiler mutation body. */
+  cl_int (*guard_program_build) (cl_device_id device, cl_program program,
+                                 cl_int (*body) (void *), void *data);
+
   /** Program building callbacks. */
   int (*build_source) (
       cl_program program, cl_uint device_i,
@@ -934,6 +955,9 @@ struct pocl_device_ops {
    * device. */
   int (*supports_binary) (cl_device_id device, const size_t length,
                           const char *binary);
+  /* Classify a validated native image without materializing a program. */
+  cl_program_binary_type (*get_binary_type) (cl_device_id device, size_t length,
+                                            const char *binary);
 
   /* determine DefinedBuiltinKernel support. Driver should examine the
    * kernel_id and the content of kernel_attributes and return CL_SUCCESS
@@ -1325,6 +1349,8 @@ struct _cl_device_id {
      Used for indexing arrays in data structures with device specific
      entries. */
   int dev_id;
+  /* Original probe slot, preserved when another initial slot fails. */
+  unsigned driver_instance;
   /* Identifier for a physical device global memory. */
   int global_mem_id;
   /* Pointer to an accounting struct for global memory */
@@ -1577,6 +1603,8 @@ struct _context_destructor_callback
 struct _cl_context {
   POCL_ICD_OBJECT
   POCL_OBJECT;
+  void (CL_CALLBACK *error_notify) (const char *, const void *, size_t, void *);
+  void *error_notify_data;
   /* queries */
   cl_device_id *devices;
   cl_context_properties *properties;
@@ -1974,6 +2002,8 @@ typedef struct pocl_kernel_metadata_s
   struct pocl_argument_info *arg_info;
   cl_bitfield has_arg_metadata;
   size_t reqd_wg_size[OPENCL_MAX_DIMENSION];
+  /* Optional per-device overrides; NULL keeps native shared metadata. */
+  size_t (*device_reqd_wg_sizes)[OPENCL_MAX_DIMENSION];
   size_t wg_size_hint[OPENCL_MAX_DIMENSION];
   char vectypehint[16];
   /* required sub-group size set with the intel_reqd_sub_group_size kernel
@@ -2017,6 +2047,17 @@ typedef struct pocl_kernel_metadata_s
   void **data;
 } pocl_kernel_metadata_t;
 
+typedef struct pocl_program_device_state {
+  char *options;
+  char *compiler_options;
+  pocl_kernel_metadata_t *kernel_meta;
+  size_t num_kernels;
+  cl_build_status status;
+  cl_program_binary_type binary_type;
+  unsigned flush_denorms;
+  cl_bool loading;
+} pocl_program_device_state;
+
 #define MAIN_PROGRAM_LOG_SIZE 6400
 
 struct _cl_program {
@@ -2043,6 +2084,11 @@ struct _cl_program {
   size_t source_size;
   /* The options in the last clBuildProgram call for this Program. */
   char *compiler_options;
+  /* Exact caller option text, before PoCL parsing or environment additions. */
+  char *original_options;
+  /* Stable associated-device slots; the global fields above are build scratch. */
+  pocl_program_device_state *device_states;
+  unsigned active_build_device;
 
   /* per-device binaries, in device-specific format */
   size_t *binary_sizes;
@@ -2080,6 +2126,9 @@ struct _cl_program {
   char main_build_log[MAIN_PROGRAM_LOG_SIZE];
   /* Use to store build status */
   cl_build_status build_status;
+  /* Program mutation guards; callbacks execute outside the object mutex. */
+  cl_bool build_in_progress;
+  unsigned kernel_creations;
   /* Use to store binary type */
   cl_program_binary_type binary_type;
   /* total size of program-scope variables. This depends on alignments
@@ -2114,6 +2163,13 @@ struct _pocl_ptr_list_node
 };
 
 
+enum {
+  POCL_INDIRECT_ACCESS_ALL = 1,
+  POCL_INDIRECT_ACCESS_HOST = 2,
+  POCL_INDIRECT_ACCESS_DEVICE = 4,
+  POCL_INDIRECT_ACCESS_SHARED = 8
+};
+
 struct _cl_kernel {
   POCL_ICD_OBJECT
   POCL_OBJECT;
@@ -2121,6 +2177,8 @@ struct _cl_kernel {
   cl_context context;
   cl_program program;
   pocl_kernel_metadata_t *meta;
+  /* Borrowed per-device execution metadata; NULL entries cannot execute. */
+  pocl_kernel_metadata_t **device_meta;
   /* device-specific data, per each device. This is different from meta->data,
    * as this is per-instance of cl_kernel, while there is just one meta->data
    * for all instances of the kernel of the same name. */
@@ -2153,10 +2211,7 @@ struct _cl_kernel {
      explicitly using clSetKernelExecInfo(). */
   pocl_ptr_list *indirect_raw_ptrs;
 
-  /* Set to true, in case the kernel might access any of the raw buffers
-     indirectly. All USM indirect access flags will set this currently.
-     We should ensure at enqueue time that all of the known raw buffers
-     will be synchronized to the device. */
+  /* POCL_INDIRECT_ACCESS_* bits; legacy value 1 selects every raw buffer. */
   char can_access_all_raw_buffers_indirectly;
 
   /* for program's linked list of kernels */
@@ -2243,6 +2298,8 @@ struct _cl_event {
 
   /* The execution status of the command this event is monitoring. */
   cl_int status;
+  /* Claims terminal preparation while execution owners are released unlocked. */
+  cl_bool finishing;
 
   /* Set to 1 when one of this command's wait-list dependencies has failed
    * (finished with a negative status) and therefore this command must not run
@@ -2425,10 +2482,9 @@ struct _cl_sampler {
 
 #endif
 
-/** Private SDK cookie for the pinned source and release-hook patch, not OpenCL
- * ABI. */
+/** Internal driver ABI cookie, separate from the public OpenCL ABI. */
 #define POCL_DRIVER_ABI_COOKIE                                                \
-  (UINT64_C (0xdde68036815a0004)                                              \
+  (UINT64_C (0xaaaa2d67b4f30001)                                              \
    ^ (sizeof (struct pocl_device_ops) * UINT64_C (0x100000001b3))             \
    ^ (sizeof (struct _cl_device_id) * UINT64_C (0x100000001b5))               \
    ^ (sizeof (struct _cl_context) * UINT64_C (0x100000001b7))                 \
@@ -2437,6 +2493,8 @@ struct _cl_sampler {
    ^ (sizeof (struct _cl_program) * UINT64_C (0x100000001bd))                 \
    ^ (sizeof (struct _cl_kernel) * UINT64_C (0x100000001bf))                  \
    ^ (sizeof (struct _cl_event) * UINT64_C (0x100000001c1))                   \
-   ^ (sizeof (_cl_command_node) * UINT64_C (0x100000001c3)))
+   ^ (sizeof (_cl_command_node) * UINT64_C (0x100000001c3))                   \
+   ^ (sizeof (pocl_kernel_metadata_t) * UINT64_C (0x100000001c5))             \
+   ^ (sizeof (pocl_ptr_list) * UINT64_C (0x100000001c7)))
 
 #endif /* POCL_CL_H */

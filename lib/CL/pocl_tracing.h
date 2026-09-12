@@ -43,6 +43,8 @@ extern "C"
 
 int pocl_is_tracing_enabled ();
 
+/* Capture terminal metadata before an opted-in driver releases its node. */
+void pocl_trace_event (cl_event event, int new_status);
 void pocl_event_updated (cl_event event, int new_status);
 
 /* Initializes the event tracing system selected with POCL_TRACING. */

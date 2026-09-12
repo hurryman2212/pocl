@@ -79,26 +79,28 @@ CL_API_ENTRY cl_int CL_API_ENTRY POname (clGetKernelSubGroupInfo) (
                             CL_INVALID_VALUE, "NDRange not given.");
     }
 
+  pocl_kernel_metadata_t *metadata = pocl_program_find_device_kernel (kernel->program, dev_i, kernel->name);
+  POCL_RETURN_ERROR_COND (!metadata, CL_INVALID_DEVICE);
   /************************************************************************/
 
   switch (param_name)
     {
     /************ these are NOT dependent on NDRANGE ***********************/
     case CL_KERNEL_MAX_NUM_SUB_GROUPS:
-      if (kernel->meta->max_subgroups)
-        POCL_RETURN_GETINFO (size_t, kernel->meta->max_subgroups[dev_i]);
+      if (metadata->max_subgroups)
+        POCL_RETURN_GETINFO (size_t, metadata->max_subgroups[dev_i]);
       else
         POCL_RETURN_GETINFO (size_t, realdev->max_num_sub_groups);
 
     case CL_KERNEL_COMPILE_NUM_SUB_GROUPS:
-      if (kernel->meta->compile_subgroups)
-        POCL_RETURN_GETINFO (size_t, kernel->meta->compile_subgroups[dev_i]);
+      if (metadata->compile_subgroups)
+        POCL_RETURN_GETINFO (size_t, metadata->compile_subgroups[dev_i]);
       else
         POCL_RETURN_GETINFO (size_t, 0);
 
     case CL_KERNEL_COMPILE_SUB_GROUP_SIZE_INTEL:
       /* Returns 0 if the intel_reqd_sub_group_size attribute is not set. */
-      POCL_RETURN_GETINFO (size_t, kernel->meta->reqd_sub_group_size);
+      POCL_RETURN_GETINFO (size_t, metadata->reqd_sub_group_size);
 
     default:
       POCL_RETURN_ERROR_ON ((realdev->ops->get_subgroup_info_ext == NULL),

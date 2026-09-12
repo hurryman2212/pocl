@@ -50,8 +50,11 @@ POname(clSVMFree)(cl_context context,
 
   POCL_LOCK_OBJ (context);
   pocl_raw_ptr *item
-    = pocl_raw_ptr_set_lookup_with_vm_ptr (context->raw_ptrs, svm_pointer);
-  pocl_raw_ptr_set_remove (context->raw_ptrs, item);
+      = pocl_raw_ptr_set_lookup_with_vm_ptr (context->raw_ptrs, svm_pointer);
+  if (item && item->vm_ptr == svm_pointer && item->kind == POCL_RAW_PTR_SVM)
+    pocl_raw_ptr_set_remove (context->raw_ptrs, item);
+  else
+    item = NULL;
   POCL_UNLOCK_OBJ (context);
 
   if (item == NULL)
@@ -60,14 +63,17 @@ POname(clSVMFree)(cl_context context,
       return;
     }
 
-  pocl_release_owned (POCL_RELEASE_MEM, item->shadow_cl_mem);
+  cl_device_id owner = context->svm_allocdev;
+  if (item->shadow_cl_mem)
+    pocl_release_owned (POCL_RELEASE_MEM, item->shadow_cl_mem);
   POCL_MEM_FREE (item);
-
-  pocl_release_owned (POCL_RELEASE_CONTEXT, context);
-
-  context->svm_allocdev->ops->svm_free (context->svm_allocdev, svm_pointer);
-
+  if (owner->ops->free_pointer)
+    owner->ops->free_pointer (owner, context, svm_pointer, CL_FALSE, CL_TRUE);
+  else
+    owner->ops->svm_free (owner, svm_pointer);
   POCL_ATOMIC_DEC (svm_buffer_c);
+  /* The allocation may hold the final context reference. */
+  pocl_release_owned (POCL_RELEASE_CONTEXT, context);
 }
 
 POsym (clSVMFree)

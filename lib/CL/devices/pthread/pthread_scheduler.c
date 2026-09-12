@@ -268,7 +268,7 @@ static void
 work_group_scheduler (kernel_run_command *k,
                       struct pool_thread_data *thread_data)
 {
-  pocl_kernel_metadata_t *meta = k->kernel->meta;
+  pocl_kernel_metadata_t *meta = pocl_kernel_metadata_for_device (k->kernel, k->device);
 
   const size_t num_args = meta->num_args + meta->num_locals + 1;
   void *arguments = alloca (sizeof (void *) * num_args);
@@ -348,7 +348,7 @@ work_group_scheduler (kernel_run_command *k,
 {
   cl_kernel kernel = k->kernel;
   cl_program program = kernel->program;
-  pocl_kernel_metadata_t *meta = k->kernel->meta;
+  pocl_kernel_metadata_t *meta = pocl_kernel_metadata_for_device (k->kernel, k->device);
 
   omp_set_dynamic(0);
   omp_set_num_threads(k->device->max_compute_units);
@@ -639,7 +639,7 @@ RETRY:
         {
           cl_kernel kernel = cmd->command.run.kernel;
           cl_program program = kernel->program;
-          pocl_kernel_metadata_t *meta = kernel->meta;
+          pocl_kernel_metadata_t *meta = pocl_kernel_metadata_for_device (kernel, cmd->device);
           cl_uint dev_i = cmd->program_device_i;
           if (program->builtin_kernel_attributes)
             {

@@ -52,7 +52,11 @@ pocl_kernel_calc_wg_size (cl_device_id dev, cl_kernel kernel,
    * since we are going to access them repeatedly */
   size_t max_group_size;
 
-  assert (kernel->meta);
+  pocl_kernel_metadata_t *metadata = pocl_program_find_device_kernel (kernel->program, device_i, kernel->name);
+  POCL_RETURN_ERROR_COND (!metadata, CL_INVALID_PROGRAM_EXECUTABLE);
+  const size_t *required = metadata->device_reqd_wg_sizes
+                              ? metadata->device_reqd_wg_sizes[device_i]
+                              : metadata->reqd_wg_size;
 
   POCL_RETURN_ERROR_COND ((work_dim < 1), CL_INVALID_WORK_DIMENSION);
   POCL_RETURN_ERROR_ON (
@@ -108,10 +112,10 @@ pocl_kernel_calc_wg_size (cl_device_id dev, cl_kernel kernel,
   max_local_z
       = work_dim > 2 ? dev->max_work_item_sizes[2] : 1;
   max_group_size = dev->max_work_group_size;
-  if (kernel->meta->max_workgroup_size
-      && kernel->meta->max_workgroup_size[device_i])
+  if (metadata->max_workgroup_size
+      && metadata->max_workgroup_size[device_i])
     {
-      max_group_size = kernel->meta->max_workgroup_size[device_i];
+      max_group_size = metadata->max_workgroup_size[device_i];
     }
 
   if (local_work_size != NULL)
@@ -173,28 +177,28 @@ pocl_kernel_calc_wg_size (cl_device_id dev, cl_kernel kernel,
    * work size can be specified, and if it is, it _must_ match the attribute
    * specification
    */
-  if (kernel->meta->reqd_wg_size[0] > 0 && kernel->meta->reqd_wg_size[1] > 0
-      && kernel->meta->reqd_wg_size[2] > 0)
+  if (required[0] > 0 && required[1] > 0
+      && required[2] > 0)
     {
-      int failed_check = (local_x != kernel->meta->reqd_wg_size[0]);
+      int failed_check = (local_x != required[0]);
       if (work_dim > 1)
         failed_check
-          = failed_check || local_y != kernel->meta->reqd_wg_size[1];
+          = failed_check || local_y != required[1];
       if (work_dim > 2)
         failed_check
-          = failed_check || local_z != kernel->meta->reqd_wg_size[2];
+          = failed_check || local_z != required[2];
       POCL_RETURN_ERROR_ON ((local_work_size != NULL && failed_check),
                             CL_INVALID_WORK_GROUP_SIZE,
                             "Local WG size doesn't match required WG size.");
       if (local_work_size == NULL)
         {
-          local_x = kernel->meta->reqd_wg_size[0];
+          local_x = required[0];
           if (work_dim > 1)
-            local_y = kernel->meta->reqd_wg_size[1];
+            local_y = required[1];
           else
             local_y = 1;
           if (work_dim > 2)
-            local_z = kernel->meta->reqd_wg_size[2];
+            local_z = required[2];
           else
             local_z = 1;
         }
@@ -271,6 +275,28 @@ find_raw_ptr (void *value, cl_context context, cl_device_id dev)
     }
   else
     return raw_ptr->shadow_cl_mem;
+}
+
+/* Filter implicit hints without changing the independent explicit pointer list. */
+static int
+pocl_pointer_is_implicit (cl_kernel kernel, const pocl_raw_ptr *pointer)
+{
+  unsigned flags = kernel->can_access_all_raw_buffers_indirectly;
+  if (flags & POCL_INDIRECT_ACCESS_ALL)
+    return 1;
+  if (pointer->kind != POCL_RAW_PTR_INTEL_USM)
+    return 0;
+  switch (pointer->usm_properties.alloc_type)
+    {
+    case CL_MEM_TYPE_HOST_INTEL:
+      return (flags & POCL_INDIRECT_ACCESS_HOST) != 0;
+    case CL_MEM_TYPE_DEVICE_INTEL:
+      return (flags & POCL_INDIRECT_ACCESS_DEVICE) != 0;
+    case CL_MEM_TYPE_SHARED_INTEL:
+      return (flags & POCL_INDIRECT_ACCESS_SHARED) != 0;
+    default:
+      return 0;
+    }
 }
 
 /**
@@ -354,39 +380,23 @@ pocl_kernel_collect_mem_objs (
         }
     }
 
-  /* If the kernel has a general indirect access set, we append the
-     currently-alive raw buffers to the indirect_raw_buffers set and ensure
-     their data gets synchronized to the device. */
   if (kernel->can_access_all_raw_buffers_indirectly)
     {
-      pocl_raw_ptr *ptr = pocl_raw_ptr_set_begin (kernel->context->raw_ptrs);
+      POCL_LOCK_OBJ (context);
+      pocl_raw_ptr *ptr = pocl_raw_ptr_set_begin (context->raw_ptrs);
       DL_FOREACH (ptr, ptr)
-        {
+        if (ptr->shadow_cl_mem && pocl_pointer_is_implicit (kernel, ptr))
           migr_infos = pocl_append_unique_migration_info (
-            migr_infos, ptr->shadow_cl_mem, 0);
-        }
+              migr_infos, ptr->shadow_cl_mem, 0);
+      POCL_UNLOCK_OBJ (context);
     }
-  else
+  pocl_ptr_list *explicit;
+  DL_FOREACH (kernel->indirect_raw_ptrs, explicit)
     {
-      /* Otherwise, we only migrate buffers related to USM/SVM pointers
-         explicitly set with clSetKernelExecInfo(). */
-      struct _pocl_ptr_list_node *n;
-      DL_FOREACH (kernel->indirect_raw_ptrs, n)
-      {
-        pocl_raw_ptr *svm_ptr
-          = pocl_find_raw_ptr_with_vm_ptr (context, n->ptr);
-
-        if (svm_ptr == NULL)
-          {
-            POCL_MSG_PRINT_MEMORY ("Couldn't find the shadow cl_mem for an "
-                                   "clSetKernelExecInfo-set SVM ptr, "
-                                   "assuming system SVM.\n");
-            continue;
-          }
-
+      pocl_raw_ptr *pointer = pocl_find_raw_ptr_with_vm_ptr (context, explicit->ptr);
+      if (pointer && pointer->shadow_cl_mem)
         migr_infos = pocl_append_unique_migration_info (
-          migr_infos, svm_ptr->shadow_cl_mem, 0);
-      }
+            migr_infos, pointer->shadow_cl_mem, 0);
     }
   *dst_migr_infos = migr_infos;
   return CL_SUCCESS;
@@ -594,7 +604,9 @@ pocl_ndrange_kernel_common (cl_command_buffer_khr command_buffer,
       if (kernel->program->devices[i] == realdev)
         program_dev_i = i;
     }
-  assert (program_dev_i < CL_UINT_MAX);
+  POCL_RETURN_ERROR_COND (program_dev_i == CL_UINT_MAX ||
+                         !pocl_program_find_device_kernel (kernel->program, program_dev_i, kernel->name),
+                         CL_INVALID_PROGRAM_EXECUTABLE);
 
   cl_mutable_dispatch_fields_khr dev_mut_supp
     = realdev->cmdbuf_mutable_dispatch_capabilities;
@@ -639,7 +651,7 @@ pocl_ndrange_kernel_common (cl_command_buffer_khr command_buffer,
   c->next = NULL;
 
   c->command.run.kernel = kernel;
-  c->command.run.hash = kernel->meta->build_hash[program_dev_i];
+  c->command.run.hash = pocl_program_find_device_kernel (kernel->program, program_dev_i, kernel->name)->build_hash[program_dev_i];
   c->command.run.pc.local_size[0] = local[0];
   c->command.run.pc.local_size[1] = local[1];
   c->command.run.pc.local_size[2] = local[2];
@@ -656,6 +668,38 @@ pocl_ndrange_kernel_common (cl_command_buffer_khr command_buffer,
     goto ERROR;
 
   errcode = pocl_kernel_copy_args (kernel, src_arguments, &c->command.run);
+  if (errcode != CL_SUCCESS)
+    goto ERROR;
+
+  size_t pointer_count = 0;
+  pocl_ptr_list *explicit;
+  DL_FOREACH (kernel->indirect_raw_ptrs, explicit)
+    ++pointer_count;
+  POCL_LOCK_OBJ (kernel->context);
+  pocl_raw_ptr *entry = pocl_raw_ptr_set_begin (kernel->context->raw_ptrs);
+  pocl_raw_ptr *it;
+  DL_FOREACH (entry, it)
+    if (it->vm_ptr && pocl_pointer_is_implicit (kernel, it))
+      ++pointer_count;
+  c->command.run.indirect_pointers = calloc (pointer_count, sizeof (void *));
+  if (pointer_count && !c->command.run.indirect_pointers)
+    errcode = CL_OUT_OF_HOST_MEMORY;
+  else
+    {
+      DL_FOREACH (kernel->indirect_raw_ptrs, explicit)
+        c->command.run.indirect_pointers[c->command.run.indirect_pointer_count++] = explicit->ptr;
+      DL_FOREACH (entry, it)
+        if (it->vm_ptr && pocl_pointer_is_implicit (kernel, it))
+          {
+            int duplicate = 0;
+            for (size_t i = 0; i < c->command.run.indirect_pointer_count; ++i)
+              if (c->command.run.indirect_pointers[i] == it->vm_ptr)
+                duplicate = 1;
+            if (!duplicate)
+              c->command.run.indirect_pointers[c->command.run.indirect_pointer_count++] = it->vm_ptr;
+          }
+    }
+  POCL_UNLOCK_OBJ (kernel->context);
   if (errcode != CL_SUCCESS)
     goto ERROR;
 

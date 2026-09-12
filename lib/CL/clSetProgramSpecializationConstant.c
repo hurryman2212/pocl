@@ -23,12 +23,10 @@
 
 #include "pocl_cl.h"
 
-CL_API_ENTRY cl_int CL_API_CALL
-POname(clSetProgramSpecializationConstant)
-                                  (cl_program  program,
-                                   cl_uint     spec_id,
-                                   size_t      spec_size,
-                                   const void* spec_value) CL_API_SUFFIX__VERSION_2_2
+static cl_int
+clSetProgramSpecializationConstant_locked (cl_program program, cl_uint spec_id,
+                                           size_t spec_size,
+                                           const void *spec_value)
 {
   /* if SPIR-V is disabled, return early */
 #if defined(ENABLE_CONFORMANCE) && !defined(ENABLE_SPIRV)
@@ -62,5 +60,22 @@ POname(clSetProgramSpecializationConstant)
 
   POCL_RETURN_ERROR (CL_INVALID_SPEC_ID,
                      "Unknown specialization constant ID %u\n", spec_id);
+}
+CL_API_ENTRY cl_int CL_API_CALL
+POname (clSetProgramSpecializationConstant) (cl_program program,
+                                             cl_uint spec_id, size_t spec_size,
+                                             const void *spec_value)
+{
+  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_VALID (program)), CL_INVALID_PROGRAM);
+  POCL_LOCK_OBJ (program);
+  if (program->build_in_progress || program->kernel_creations)
+    {
+      POCL_UNLOCK_OBJ (program);
+      return CL_INVALID_OPERATION;
+    }
+  cl_int status = clSetProgramSpecializationConstant_locked (
+      program, spec_id, spec_size, spec_value);
+  POCL_UNLOCK_OBJ (program);
+  return status;
 }
 POsym (clSetProgramSpecializationConstant)

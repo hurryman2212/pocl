@@ -177,7 +177,7 @@ pocl_cpu_setup_rm_and_ftz (cl_device_id dev, cl_program prog)
     = (dev->half_fp_config | dev->single_fp_config | dev->double_fp_config)
       & CL_FP_DENORM;
   if (supports_any_denorms)
-    pocl_set_ftz (prog->flush_denorms);
+    pocl_set_ftz (pocl_program_device_flush_denorms (prog, pocl_program_find_device (prog, dev)));
   else
     pocl_set_ftz (1);
   /* Rounding mode change is deprecated & only supported by OpenCL 1.0 */
@@ -603,7 +603,7 @@ pocl_setup_kernel_arg_array (kernel_run_command *k)
 {
   struct pocl_argument *al;
 
-  pocl_kernel_metadata_t *meta = k->kernel->meta;
+  pocl_kernel_metadata_t *meta = pocl_kernel_metadata_for_device (k->kernel, k->device);
   cl_uint i;
   void **arguments;
   void **arguments2;
@@ -680,7 +680,7 @@ pocl_setup_kernel_arg_array_with_locals (void **arguments,
                                          char *local_mem,
                                          size_t local_mem_size)
 {
-  pocl_kernel_metadata_t *meta = k->kernel->meta;
+  pocl_kernel_metadata_t *meta = pocl_kernel_metadata_for_device (k->kernel, k->device);
   cl_uint i;
 
   memcpy (arguments2, k->arguments2, ARGS_SIZE);
@@ -765,7 +765,7 @@ void
 pocl_free_kernel_arg_array (kernel_run_command *k)
 {
   cl_uint i;
-  pocl_kernel_metadata_t *meta = k->kernel->meta;
+  pocl_kernel_metadata_t *meta = pocl_kernel_metadata_for_device (k->kernel, k->device);
   void **arguments = k->arguments;
   void **arguments2 = k->arguments2;
 
@@ -800,7 +800,7 @@ void
 pocl_free_kernel_arg_array_with_locals (void **arguments, void **arguments2,
                                    kernel_run_command *k)
 {
-  pocl_kernel_metadata_t *meta = k->kernel->meta;
+  pocl_kernel_metadata_t *meta = pocl_kernel_metadata_for_device (k->kernel, k->device);
   cl_uint i;
 
   for (i = 0; i < meta->num_args; ++i)

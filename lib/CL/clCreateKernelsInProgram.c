@@ -23,7 +23,7 @@ POname(clCreateKernelsInProgram)(cl_program      program ,
     CL_INVALID_PROGRAM_EXECUTABLE, "You must call clBuildProgram first!"
       " (even for programs created with binaries)\n");
 
-  POCL_RETURN_ERROR_ON((program->build_status != CL_BUILD_SUCCESS),
+  POCL_RETURN_ERROR_ON((!pocl_program_has_executable (program)),
     CL_INVALID_PROGRAM_EXECUTABLE, "Last BuildProgram() was not successful\n");
 
   assert (program->num_devices != 0);

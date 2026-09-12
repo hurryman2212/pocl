@@ -39,10 +39,9 @@ ptr_aliases_any_bda (cl_context context, const void *dev_ptr)
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-POname(clSetKernelExecInfo)(cl_kernel kernel,
-                            cl_kernel_exec_info param_name,
-                            size_t param_value_size,
-                            const void *param_value) CL_API_SUFFIX__VERSION_1_0
+POname (clSetKernelExecInfo) (cl_kernel kernel, cl_kernel_exec_info param_name,
+                              size_t param_value_size, const void *param_value)
+    CL_API_SUFFIX__VERSION_1_0
 {
   POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_VALID (kernel)), CL_INVALID_KERNEL);
 
@@ -73,10 +72,11 @@ POname(clSetKernelExecInfo)(cl_kernel kernel,
             CL_INVALID_OPERATION,
             "This device doesn't support clSetKernelExecInfo\n");
         cl_int ret_val = realdev->ops->set_kernel_exec_info_ext (
-          realdev, program_device_i, kernel, param_name, param_value_size,
-          param_value);
+            realdev, program_device_i, kernel, param_name, param_value_size,
+            param_value);
 
-        if (ret_val == CL_SUCCESS && param_name == CL_KERNEL_EXEC_INFO_SVM_PTRS)
+        if (ret_val == CL_SUCCESS
+            && param_name == CL_KERNEL_EXEC_INFO_SVM_PTRS)
           pocl_reset_indirect_ptrs (kernel, param_name, (void **)param_value,
                                     param_value_size / sizeof (void *));
 
@@ -100,7 +100,7 @@ POname(clSetKernelExecInfo)(cl_kernel kernel,
             (dev->ops->set_kernel_exec_info_ext == NULL), CL_INVALID_OPERATION,
             "This USM allocator device doesn't support clSetKernelExecInfo\n");
         cl_int ret_val = dev->ops->set_kernel_exec_info_ext (
-          dev, 0, kernel, param_name, param_value_size, param_value);
+            dev, 0, kernel, param_name, param_value_size, param_value);
 
         if (param_name == CL_KERNEL_EXEC_INFO_USM_PTRS_INTEL
             && ret_val == CL_SUCCESS)
@@ -167,4 +167,4 @@ POname(clSetKernelExecInfo)(cl_kernel kernel,
                          "Given param_name(%u) is not valid\n", param_name);
     }
 }
-POsym(clSetKernelExecInfo)
+POsym (clSetKernelExecInfo)

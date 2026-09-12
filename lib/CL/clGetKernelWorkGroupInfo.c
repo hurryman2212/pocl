@@ -65,6 +65,8 @@ POname(clGetKernelWorkGroupInfo)
   POCL_RETURN_ERROR_ON ((dev_i == CL_UINT_MAX), CL_INVALID_KERNEL,
                         "the kernel was not built for this device\n");
 
+  pocl_kernel_metadata_t *metadata = pocl_program_find_device_kernel (kernel->program, dev_i, kernel->name);
+  POCL_RETURN_ERROR_COND (!metadata, CL_INVALID_DEVICE);
   POCL_RETURN_ERROR_COND (
     (POCL_ATOMIC_LOAD_PTR (device->available) == CL_FALSE),
     CL_DEVICE_NOT_AVAILABLE);
@@ -76,36 +78,35 @@ POname(clGetKernelWorkGroupInfo)
       {
         /* this parameter is only for custom devices & builtin kernels. */
         POCL_RETURN_ERROR_ON (
-          ((kernel->meta->builtin_kernel_id == 0)
+          ((metadata->builtin_kernel_id == 0)
            || (device->type != CL_DEVICE_TYPE_CUSTOM)),
           CL_INVALID_VALUE,
           "only valid for custom devices or builtin kernels\n");
-        POCL_RETURN_GETINFO (size_t_3, kernel->meta->builtin_max_global_work);
+        POCL_RETURN_GETINFO (size_t_3, metadata->builtin_max_global_work);
       }
     case CL_KERNEL_WORK_GROUP_SIZE:
       {
-        if (kernel->meta->max_workgroup_size
-            && kernel->meta->max_workgroup_size[dev_i])
+        if (metadata->max_workgroup_size
+            && metadata->max_workgroup_size[dev_i])
           POCL_RETURN_GETINFO (size_t,
-                               kernel->meta->max_workgroup_size[dev_i]);
+                               metadata->max_workgroup_size[dev_i]);
         else // fallback to device's CL_DEVICE_MAX_WORK_GROUP_SIZE
           return POname (clGetDeviceInfo) (
               device, CL_DEVICE_MAX_WORK_GROUP_SIZE, param_value_size,
               param_value, param_value_size_ret);
       }
     case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
-    {
-        POCL_MSG_PRINT_GENERAL (
-            "### reqd wg sizes %zu %zu %zu\n", kernel->meta->reqd_wg_size[0],
-            kernel->meta->reqd_wg_size[1], kernel->meta->reqd_wg_size[2]);
-        POCL_RETURN_GETINFO (size_t_3,
-                             *(size_t_3 *)kernel->meta->reqd_wg_size);
-    }
+      {
+        const size_t *required = metadata->device_reqd_wg_sizes
+                                   ? metadata->device_reqd_wg_sizes[dev_i]
+                                   : metadata->reqd_wg_size;
+        POCL_RETURN_GETINFO (size_t_3, *(const size_t_3 *)required);
+      }
     case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
       {
-        if (kernel->meta->preferred_wg_multiple)
+        if (metadata->preferred_wg_multiple)
           POCL_RETURN_GETINFO (size_t,
-                               kernel->meta->preferred_wg_multiple[dev_i]);
+                               metadata->preferred_wg_multiple[dev_i]);
         else // fallback to device's preferred WG size multiple
           POCL_RETURN_GETINFO (size_t, device->preferred_wg_size_multiple);
       }
@@ -113,14 +114,14 @@ POname(clGetKernelWorkGroupInfo)
     {
       cl_ulong total_local_size = 0;
       /* add the static local_mem argument sizes */
-      if (kernel->meta->local_mem_size)
-        total_local_size = kernel->meta->local_mem_size[dev_i];
+      if (metadata->local_mem_size)
+        total_local_size = metadata->local_mem_size[dev_i];
       /* add the dynamically set local_mem argument sizes */
-      for (unsigned i = 0; i < kernel->meta->num_args; ++i)
+      for (unsigned i = 0; i < metadata->num_args; ++i)
         {
-          if (kernel->meta->arg_info[i].type != POCL_ARG_TYPE_POINTER)
+          if (metadata->arg_info[i].type != POCL_ARG_TYPE_POINTER)
             continue;
-          if (kernel->meta->arg_info[i].address_qualifier
+          if (metadata->arg_info[i].address_qualifier
               != CL_KERNEL_ARG_ADDRESS_LOCAL)
             continue;
           total_local_size += (kernel->dyn_arguments[i].size);
@@ -130,15 +131,15 @@ POname(clGetKernelWorkGroupInfo)
     }
     case CL_KERNEL_PRIVATE_MEM_SIZE:
       {
-        if (kernel->meta->private_mem_size)
-          POCL_RETURN_GETINFO (size_t, kernel->meta->private_mem_size[dev_i]);
+        if (metadata->private_mem_size)
+          POCL_RETURN_GETINFO (size_t, metadata->private_mem_size[dev_i]);
         else
           POCL_RETURN_GETINFO (cl_ulong, 0);
       }
     case CL_KERNEL_SPILL_MEM_SIZE_INTEL:
       {
-        if (kernel->meta->spill_mem_size)
-          POCL_RETURN_GETINFO (size_t, kernel->meta->spill_mem_size[dev_i]);
+        if (metadata->spill_mem_size)
+          POCL_RETURN_GETINFO (size_t, metadata->spill_mem_size[dev_i]);
         else
           POCL_RETURN_GETINFO (cl_ulong, 0);
       }

@@ -805,43 +805,56 @@ pocl_driver_link_program (cl_program program, cl_uint device_i,
 
 #ifdef ENABLE_LLVM
   cl_device_id device = program->devices[device_i];
-  /* just link binaries. */
-  unsigned char **cur_device_binaries = (unsigned char **)alloca (
-      num_input_programs * sizeof (unsigned char *));
-  size_t *cur_device_binary_sizes
-      = (size_t *)alloca (num_input_programs * sizeof (size_t));
-  void **cur_device_llvm_irs
-      = (void **)alloca (num_input_programs * sizeof (void *));
-
-  cl_uint i;
-  for (i = 0; i < num_input_programs; i++)
+  unsigned char **binaries = calloc (num_input_programs, sizeof (*binaries));
+  size_t *sizes = calloc (num_input_programs, sizeof (*sizes));
+  void **modules = calloc (num_input_programs, sizeof (*modules));
+  int errcode = CL_SUCCESS;
+  if (!binaries || !sizes || !modules)
     {
-      assert (device == input_programs[i]->devices[device_i]);
-      POCL_LOCK_OBJ (input_programs[i]);
-
-      cur_device_binaries[i] = input_programs[i]->binaries[device_i];
-      assert (cur_device_binaries[i]);
-      cur_device_binary_sizes[i] = input_programs[i]->binary_sizes[device_i];
-      assert (cur_device_binary_sizes[i] > 0);
-
-      pocl_llvm_read_program_llvm_irs (input_programs[i], device_i, NULL);
-
-      cur_device_llvm_irs[i] = input_programs[i]->llvm_irs[device_i];
-      assert (cur_device_llvm_irs[i]);
-      POCL_UNLOCK_OBJ (input_programs[i]);
+      errcode = CL_OUT_OF_HOST_MEMORY;
+      goto FINISH;
     }
-
-  int err = pocl_llvm_link_program (
-      program, device_i, num_input_programs, cur_device_binaries,
-      cur_device_binary_sizes, cur_device_llvm_irs, !create_library, CL_TRUE);
-
-  POCL_RETURN_ERROR_ON ((err != CL_SUCCESS), CL_LINK_PROGRAM_FAILURE,
-                        "Linking of program failed\n");
-  return CL_SUCCESS;
+  for (unsigned i = 0; i < num_input_programs; ++i)
+    {
+      cl_program input = input_programs[i];
+      unsigned index = pocl_program_find_device (input, device);
+      if (index == CL_UINT_MAX)
+        {
+          errcode = CL_INVALID_DEVICE;
+          goto FINISH;
+        }
+      /** clLinkProgram retains inputs and excludes rebuild until return. */
+      POCL_LOCK_OBJ (input);
+      binaries[i] = input->binaries[index];
+      sizes[i] = input->binary_sizes[index];
+      if (!input->llvm_irs[index] && (!binaries[i] || !sizes[i]))
+        {
+          POCL_UNLOCK_OBJ (input);
+          errcode = CL_INVALID_BINARY;
+          goto FINISH;
+        }
+      errcode = pocl_llvm_read_program_llvm_irs (input, index, NULL);
+      modules[i] = input->llvm_irs[index];
+      POCL_UNLOCK_OBJ (input);
+      if (errcode != CL_SUCCESS || !modules[i])
+        {
+          errcode = CL_LINK_PROGRAM_FAILURE;
+          goto FINISH;
+        }
+    }
+  errcode = pocl_llvm_link_program (program, device_i, num_input_programs,
+                                    binaries, sizes, modules, !create_library,
+                                    CL_TRUE);
+  if (errcode != CL_SUCCESS)
+    errcode = CL_LINK_PROGRAM_FAILURE;
+FINISH:
+  free (binaries);
+  free (sizes);
+  free (modules);
+  return errcode;
 #else
   POCL_RETURN_ERROR (CL_BUILD_PROGRAM_FAILURE,
                      "This device requires LLVM to link binaries\n");
-
 #endif
 }
 
@@ -969,12 +982,16 @@ pocl_driver_build_poclbinary (cl_program program, cl_uint device_i)
   cl_device_id device = program->devices[device_i];
 
   assert (program->build_status == CL_BUILD_SUCCESS);
-  if (program->num_kernels == 0)
+  size_t kernel_count = program->device_states
+      ? program->device_states[device_i].num_kernels : program->num_kernels;
+  pocl_kernel_metadata_t *metadata = program->device_states
+      ? program->device_states[device_i].kernel_meta : program->kernel_meta;
+  if (kernel_count == 0)
     return CL_SUCCESS;
 
   /* For binaries of other than Executable type (libraries, compiled but
    * not linked programs, etc), do not attempt to compile the kernels. */
-  if (program->binary_type != CL_PROGRAM_BINARY_TYPE_EXECUTABLE)
+  if (pocl_program_device_binary_type (program, device_i) != CL_PROGRAM_BINARY_TYPE_EXECUTABLE)
     return CL_SUCCESS;
 
   memset (&cmd, 0, sizeof (_cl_command_node));
@@ -994,9 +1011,9 @@ pocl_driver_build_poclbinary (cl_program program, cl_uint device_i)
   fake_k.next = NULL;
   cl_kernel kernel = &fake_k;
 
-  for (i = 0; i < program->num_kernels; i++)
+  for (i = 0; i < kernel_count; i++)
     {
-      fake_k.meta = &program->kernel_meta[i];
+      fake_k.meta = &metadata[i];
       fake_k.name = fake_k.meta->name;
       cmd.command.run.hash = fake_k.meta->build_hash[device_i];
 

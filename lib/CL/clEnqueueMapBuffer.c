@@ -143,6 +143,7 @@ POname(clEnqueueMapBuffer)(cl_command_queue command_queue,
   POCL_MSG_PRINT_MEMORY ("Buffer %p New Mapping: host_ptr %p offset %zu\n",
                          buffer, mapping_info->host_ptr, mapping_info->offset);
 
+  void *mapped_pointer = mapping_info->host_ptr;
   pocl_command_enqueue (command_queue, cmd);
 
   if (blocking_map)
@@ -153,7 +154,7 @@ POname(clEnqueueMapBuffer)(cl_command_queue command_queue,
   if (errcode_ret)
     *errcode_ret = CL_SUCCESS;
 
-  return mapping_info->host_ptr;
+  return mapped_pointer;
 
 ERROR:
   if (must_release)

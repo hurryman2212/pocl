@@ -99,8 +99,13 @@ POname(clCreateProgramWithSource)(cl_context context,
   program->context = context;
   program->associated_num_devices = context->num_devices;
   program->associated_devices = context->devices;
-  program->num_devices = 0;
-  program->devices = 0;
+  program->num_devices = program->associated_num_devices;
+  program->devices = program->associated_devices;
+  program->active_build_device = CL_UINT_MAX;
+  program->device_states = calloc (program->num_devices, sizeof (*program->device_states));
+  POCL_GOTO_ERROR_COND (!program->device_states, CL_OUT_OF_HOST_MEMORY);
+  for (i = 0; i < program->num_devices; ++i)
+    program->device_states[i].status = CL_BUILD_NONE;
 
   program->build_status = CL_BUILD_NONE;
   program->binary_type = CL_PROGRAM_BINARY_TYPE_NONE;
@@ -154,6 +159,7 @@ ERROR:
   if (program) {
     POCL_MEM_FREE(program->build_hash);
     POCL_MEM_FREE (program->data);
+    POCL_MEM_FREE (program->device_states);
     POCL_MEM_FREE (program->global_var_total_size);
     POCL_MEM_FREE (program->llvm_irs);
     POCL_MEM_FREE (program->gvar_storage);

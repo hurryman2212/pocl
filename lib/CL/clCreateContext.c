@@ -145,6 +145,7 @@ POname (clCreateContext) (const cl_context_properties *properties,
 {
   unsigned i = 0;
   cl_int errcode = 0;
+  int counted = 0;
   cl_context context = NULL;
   cl_platform_id platform;
   POname (clGetPlatformIDs) (1, &platform, NULL);
@@ -185,6 +186,8 @@ POname (clCreateContext) (const cl_context_properties *properties,
   POCL_GOTO_ERROR_COND ((context == NULL), CL_OUT_OF_HOST_MEMORY);
 
   POCL_INIT_OBJECT (context, devices[0]);
+  context->error_notify = pfn_notify;
+  context->error_notify_data = user_data;
   context->raw_ptrs = pocl_raw_ptr_set_create ();
   if (!context->raw_ptrs)
     goto ERROR;
@@ -228,7 +231,14 @@ POname (clCreateContext) (const cl_context_properties *properties,
   /* only required for online context */
   if (!pocl_offline_compile)
     {
+      /* Count this unpublished constructor while callbacks execute without
+         the context lock; nested native contexts and shutdown stay safe. */
+      POCL_ATOMIC_INC (context_c);
+      ++cl_context_count;
+      counted = 1;
+      POCL_UNLOCK (pocl_context_handling_lock);
       errcode = pocl_setup_context (context);
+      POCL_LOCK (pocl_context_handling_lock);
       if (errcode)
         goto ERROR;
     }
@@ -243,9 +253,12 @@ POname (clCreateContext) (const cl_context_properties *properties,
   pocl_llvm_create_context (context);
 #endif
 
-  POCL_ATOMIC_INC (context_c);
-
-  cl_context_count += 1;
+  if (!counted)
+    {
+      POCL_ATOMIC_INC (context_c);
+      ++cl_context_count;
+      counted = 1;
+    }
   POCL_UNLOCK (pocl_context_handling_lock);
 
   POCL_MSG_PRINT_GENERAL ("Created Context %" PRId64 " (%p)\n", context->id,
@@ -264,8 +277,12 @@ ERROR:
             context->release.device_index = 0;
             for (unsigned d = 0; d < context->num_create_devices; ++d)
               POname (clRetainDevice) (context->create_devices[d]);
-            POCL_ATOMIC_INC (context_c);
-            ++cl_context_count;
+            if (!counted)
+              {
+                POCL_ATOMIC_INC (context_c);
+                ++cl_context_count;
+                counted = 1;
+              }
             POCL_UNLOCK (pocl_context_handling_lock);
             pocl_release_owned (POCL_RELEASE_CONTEXT, context);
             pocl_retry_releases ();
@@ -290,6 +307,11 @@ ERROR:
       pocl_raw_ptr_set_destroy (context->raw_ptrs);
     }
   POCL_MEM_FREE(context);
+  if (counted)
+    {
+      POCL_ATOMIC_DEC (context_c);
+      --cl_context_count;
+    }
   if(errcode_ret != NULL)
     {
       *errcode_ret = errcode;

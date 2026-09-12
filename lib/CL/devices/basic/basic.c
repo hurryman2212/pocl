@@ -248,7 +248,7 @@ pocl_basic_run (void *data, _cl_command_node *cmd)
   unsigned i;
   cl_kernel kernel = cmd->command.run.kernel;
   cl_program program = kernel->program;
-  pocl_kernel_metadata_t *meta = kernel->meta;
+  pocl_kernel_metadata_t *meta = pocl_kernel_metadata_for_device (kernel, cmd->device);
   struct pocl_context *pc = &cmd->command.run.pc;
   cl_uint dev_i = cmd->program_device_i;
 
@@ -940,7 +940,10 @@ pocl_basic_get_subgroup_info_ext (cl_device_id device,
   /* The SG size is the size required with the intel_reqd_sub_group_size
      kernel attribute, otherwise WG_x. This must be kept in sync with the
      device-side implementation in lib/kernel/subgroups.cl. */
-  size_t sg_size = kernel->meta->reqd_sub_group_size;
+  pocl_kernel_metadata_t *metadata = pocl_kernel_metadata_for_device (kernel, device);
+  if (!metadata)
+    return CL_INVALID_DEVICE;
+  size_t sg_size = metadata->reqd_sub_group_size;
   if (sg_size == 0 && input_value != NULL && input_value_size >= sizeof (size_t))
     sg_size = ((size_t *)input_value)[0];
 

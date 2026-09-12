@@ -97,8 +97,11 @@ POname(clSVMAlloc)(cl_context context,
   pocl_raw_ptr *item = calloc (1, sizeof (pocl_raw_ptr));
   POCL_RETURN_ERROR_ON ((item == NULL), NULL, "out of host memory\n");
 
-  void *ptr = context->svm_allocdev->ops->svm_alloc (context->svm_allocdev,
-                                                     flags, size);
+  cl_int allocation_error = CL_SUCCESS;
+  void *ptr = context->svm_allocdev->ops->alloc_pointer
+      ? context->svm_allocdev->ops->alloc_pointer (
+          context->svm_allocdev, context, 0, flags, size, alignment, &allocation_error)
+      : context->svm_allocdev->ops->svm_alloc (context->svm_allocdev, flags, size);
   if (ptr == NULL)
     {
       POCL_MEM_FREE (item);
@@ -115,7 +118,10 @@ POname(clSVMAlloc)(cl_context context,
 
   if (!inserted) {
       POCL_MEM_FREE (item);
-      context->svm_allocdev->ops->svm_free (context->svm_allocdev, ptr);
+      if (context->svm_allocdev->ops->free_pointer)
+        context->svm_allocdev->ops->free_pointer (context->svm_allocdev, context, ptr, CL_FALSE, CL_TRUE);
+      else
+        context->svm_allocdev->ops->svm_free (context->svm_allocdev, ptr);
       return NULL;
   }
 
@@ -138,7 +144,10 @@ POname(clSVMAlloc)(cl_context context,
       pocl_raw_ptr_set_erase (context->raw_ptrs, item);
       POCL_UNLOCK_OBJ (context);
       POCL_MEM_FREE (item);
-      context->svm_allocdev->ops->svm_free (context->svm_allocdev, ptr);
+      if (context->svm_allocdev->ops->free_pointer)
+        context->svm_allocdev->ops->free_pointer (context->svm_allocdev, context, ptr, CL_FALSE, CL_TRUE);
+      else
+        context->svm_allocdev->ops->svm_free (context->svm_allocdev, ptr);
       POCL_MSG_ERR ("Failed to allocate memory a shadow cl_mem object.\n");
       return NULL;
     }

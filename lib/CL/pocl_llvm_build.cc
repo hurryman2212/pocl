@@ -198,8 +198,8 @@ static bool generateProgramBC(PoclLLVMContextData *Context, llvm::Module *Mod,
   }
 
   std::string Opts;
-  if (Program->compiler_options)
-    Opts.assign(Program->compiler_options);
+  if (const char *Options = pocl_program_device_options(Program, device_i))
+    Opts.assign(Options);
   bool DebugRequested = (Opts.find("-g") != std::string::npos);
   if (link(Mod, BuiltinLib, Log, Device, !DebugRequested,
            /*ErrorOnUnresolved=*/true))
@@ -302,8 +302,8 @@ int pocl_llvm_build_program(cl_program program,
   tempfile[0] = 0;
   llvm::Module *mod = nullptr;
   char temp_include_dir[POCL_MAX_PATHNAME_LENGTH];
-  std::string user_options(program->compiler_options ? program->compiler_options
-                                                     : "");
+  const char *DeviceOptions = pocl_program_device_options(program, device_i);
+  std::string user_options(DeviceOptions ? DeviceOptions : "");
   size_t n = 0;
   int error;
   cl_context ctx = program->context;
@@ -377,7 +377,7 @@ int pocl_llvm_build_program(cl_program program,
     }
 
 #if !(defined(__x86_64__) && defined(__GNUC__))
-  if (program->flush_denorms) {
+  if (pocl_program_device_flush_denorms(program, device_i)) {
     POCL_MSG_WARN("flush to zero is currently only implemented for "
                   "x86-64 & gcc/clang, ignoring flag\n");
   }

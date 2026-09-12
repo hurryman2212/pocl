@@ -748,26 +748,16 @@ pocl_exec_command (_cl_command_node *node)
     case CL_COMMAND_SVM_FREE:
       pocl_update_event_running (event);
       if (cmd->svm_free.pfn_free_func)
-        cmd->svm_free.pfn_free_func(
-           cmd->svm_free.queue,
-           cmd->svm_free.num_svm_pointers,
-           cmd->svm_free.svm_pointers,
-           cmd->svm_free.data);
+        cmd->svm_free.pfn_free_func (
+            cmd->svm_free.queue, cmd->svm_free.num_svm_pointers,
+            cmd->svm_free.svm_pointers, cmd->svm_free.data);
       else
         for (i = 0; i < cmd->svm_free.num_svm_pointers; i++)
           {
-            void *ptr = cmd->svm_free.svm_pointers[i];
-            POCL_LOCK_OBJ (event->context);
-            pocl_raw_ptr *item = pocl_raw_ptr_set_lookup_with_vm_ptr (
-              event->context->raw_ptrs, ptr);
-            cl_mem shadow_mem = item->shadow_cl_mem;
-            assert (item);
-            pocl_raw_ptr_set_erase (event->context->raw_ptrs, item);
-            POCL_UNLOCK_OBJ (event->context);
-            pocl_release_owned (POCL_RELEASE_CONTEXT, event->context);
-            if (shadow_mem)
-              pocl_release_owned (POCL_RELEASE_MEM, shadow_mem);
-            dev->ops->svm_free (dev, ptr);
+            /* Use the allocation's owner/context, including custom pointer
+               retirement, rather than the queue's potentially different
+               device. */
+            POname (clSVMFree) (event->context, cmd->svm_free.svm_pointers[i]);
           }
       POCL_UPDATE_EVENT_COMPLETE_MSG (event, "Event SVM Free              ");
       break;

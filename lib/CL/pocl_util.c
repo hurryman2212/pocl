@@ -188,6 +188,8 @@ enqueue_release (pocl_release_state *state, pocl_release_kind kind,
 cl_int
 pocl_release_owned (pocl_release_kind kind, void *object)
 {
+  if (!object)
+    return CL_SUCCESS;
   pocl_release_state *state;
   cl_device_id *devices;
   unsigned count;
@@ -699,14 +701,15 @@ pocl_preallocate_buffers (cl_device_id dev,
   return CL_TRUE;
 }
 
-cl_int
-pocl_create_command_struct (_cl_command_node **cmd,
+static cl_int
+pocl_create_command_struct_full (_cl_command_node **cmd,
                             cl_command_queue command_queue,
                             cl_command_type command_type,
                             cl_event *event_p,
                             cl_uint num_events,
                             const cl_event *wait_list,
-                            pocl_buffer_migration_info *migration_infos)
+                            pocl_buffer_migration_info *migration_infos,
+                            const _cl_command_t *payload)
 {
   unsigned i;
   cl_event *event = NULL;
@@ -716,6 +719,8 @@ pocl_create_command_struct (_cl_command_node **cmd,
   POCL_RETURN_ERROR_COND ((*cmd == NULL), CL_OUT_OF_HOST_MEMORY);
 
   (*cmd)->type = command_type;
+  if (payload)
+    (*cmd)->command = *payload;
 
   event = &((*cmd)->sync.event.event);
   errcode = pocl_create_event (event, command_queue, command_type,
@@ -728,8 +733,11 @@ pocl_create_command_struct (_cl_command_node **cmd,
   (*event)->command = *cmd;
   if (command_queue->device->ops->init_command)
     {
+      /* Borrow unretained allocation metadata only for admission. */
+      (*cmd)->migr_infos = migration_infos;
       errcode = command_queue->device->ops->init_command (
           *cmd, command_queue, num_events, wait_list);
+      (*cmd)->migr_infos = NULL;
       if (errcode != CL_SUCCESS)
         goto ERROR;
     }
@@ -784,6 +792,20 @@ ERROR:
   return errcode;
 }
 
+cl_int
+pocl_create_command_struct (_cl_command_node **cmd,
+                            cl_command_queue command_queue,
+                            cl_command_type command_type,
+                            cl_event *event_p,
+                            cl_uint num_events,
+                            const cl_event *wait_list,
+                            pocl_buffer_migration_info *migration_infos)
+{
+  return pocl_create_command_struct_full (cmd, command_queue, command_type,
+                                          event_p, num_events, wait_list,
+                                          migration_infos, NULL);
+}
+
 /**
  * Creates a command node for immediate execution and adds implicit data
  * migrations required by it.
@@ -799,7 +821,8 @@ pocl_create_command_full (_cl_command_node **cmd,
                           cl_uint num_events,
                           const cl_event *wait_list,
                           pocl_buffer_migration_info *buffer_usage,
-                          cl_mem_migration_flags mig_flags)
+                          cl_mem_migration_flags mig_flags,
+                          const _cl_command_t *payload)
 {
   cl_device_id dev = pocl_real_dev (command_queue->device);
   int err = CL_SUCCESS;
@@ -824,8 +847,8 @@ pocl_create_command_full (_cl_command_node **cmd,
 
   /* Waitlist here only contains the user-provided events.
      Migration events are added to the waitlist later. */
-  err = pocl_create_command_struct (cmd, command_queue, command_type, event_p,
-                                    num_events, wait_list, buffer_usage);
+  err = pocl_create_command_struct_full (cmd, command_queue, command_type, event_p,
+                                         num_events, wait_list, buffer_usage, payload);
 
   if (err)
     return err;
@@ -988,7 +1011,7 @@ pocl_create_command_migrate (_cl_command_node **cmd,
 {
   return pocl_create_command_full (
     cmd, command_queue, CL_COMMAND_MIGRATE_MEM_OBJECTS, event_p, num_events,
-    wait_list, migration_infos, flags);
+    wait_list, migration_infos, flags, NULL);
 }
 
 /**
@@ -1007,7 +1030,23 @@ pocl_create_command (_cl_command_node **cmd,
                      pocl_buffer_migration_info *migration_infos)
 {
   return pocl_create_command_full (cmd, command_queue, command_type, event_p,
-                                   num_events, wait_list, migration_infos, 0);
+                                   num_events, wait_list, migration_infos, 0, NULL);
+}
+
+/* Payload ownership remains with the caller on failure. Successful command
+ * cleanup consumes pointer members according to the command's normal type. */
+cl_int
+pocl_create_command_with_payload (_cl_command_node **cmd,
+                                  cl_command_queue command_queue,
+                                  cl_command_type command_type,
+                                  cl_event *event_p, cl_uint num_events,
+                                  const cl_event *wait_list,
+                                  pocl_buffer_migration_info *migration_infos,
+                                  const _cl_command_t *payload)
+{
+  return pocl_create_command_full (cmd, command_queue, command_type, event_p,
+                                   num_events, wait_list, migration_infos, 0,
+                                   payload);
 }
 
 /* call with node->sync.event.event UNLOCKED */
@@ -1128,24 +1167,74 @@ pocl_command_push (_cl_command_node *node,
     }
 }
 
-static void
-pocl_unmap_command_finished (cl_device_id dev, _cl_command_t *cmd)
+cl_int
+pocl_map_command_failed (cl_device_id dev, _cl_command_t *cmd)
 {
-  pocl_mem_identifier *mem_id = NULL;
-  cl_mem mem = NULL;
-  mem = POCL_MEM_BS (cmd->unmap.buffer);
-  mem_id = &POCL_MEM_BS (mem)->device_ptrs[dev->global_mem_id];
+  mem_mapping_t *map = cmd->map.mapping;
+  if (!map)
+    return CL_SUCCESS;
+  cl_mem mem = POCL_MEM_BS (cmd->map.buffer);
+  pocl_mem_identifier *mem_id = &mem->device_ptrs[dev->global_mem_id];
+  if (dev->ops->free_mapping_ptr)
+    {
+      cl_int status = dev->ops->free_mapping_ptr (dev->data, mem_id, mem, map);
+      if (status != CL_SUCCESS)
+        return status;
+    }
+  POCL_LOCK_OBJ (mem);
+  DL_DELETE (mem->mappings, map);
+  --mem->map_count;
+  int has_unmap = map->unmap_requested > 0;
+  if (has_unmap)
+    map->unmap_requested = -1;
+  cmd->map.mapping = NULL;
+  POCL_UNLOCK_OBJ (mem);
+  if (!has_unmap)
+    {
+      POCL_MEM_FREE (map);
+      pocl_release_owned (POCL_RELEASE_MEM, mem);
+    }
+  return CL_SUCCESS;
+}
 
+cl_int
+pocl_unmap_command_finished (cl_device_id dev, _cl_command_t *cmd,
+                             cl_int status)
+{
   mem_mapping_t *map = cmd->unmap.mapping;
+  if (!map)
+    return status;
+  if (map->unmap_requested < 0)
+    {
+      cmd->unmap.mapping = NULL;
+      POCL_MEM_FREE (map);
+      return status == CL_SUCCESS ? CL_INVALID_VALUE : status;
+    }
+  cl_mem mem = POCL_MEM_BS (cmd->unmap.buffer);
+  pocl_mem_identifier *mem_id = &mem->device_ptrs[dev->global_mem_id];
+  /* No user/backend callback runs while the mapping owner is locked. */
+  if (status == CL_SUCCESS && dev->ops->free_mapping_ptr)
+    status = dev->ops->free_mapping_ptr (dev->data, mem_id, mem, map);
   POCL_LOCK_OBJ (mem);
   assert (map->unmap_requested > 0);
-  if (dev->ops->free_mapping_ptr)
-    dev->ops->free_mapping_ptr (dev->data, mem_id, mem, map);
-  DL_DELETE (mem->mappings, map);
-  mem->map_count--;
-  POCL_MEM_FREE (map);
+  if (status == CL_SUCCESS)
+    {
+      DL_DELETE (mem->mappings, map);
+      --mem->map_count;
+    }
+  else
+    {
+      map->unmap_requested = 0;
+      /* Enqueue consumed the mapping's original owner reference. */
+      POCL_RETAIN_OBJECT_UNLOCKED (mem);
+    }
+  cmd->unmap.mapping = NULL;
   POCL_UNLOCK_OBJ (mem);
+  if (status == CL_SUCCESS)
+    POCL_MEM_FREE (map);
+  return status;
 }
+
 
 void
 pocl_ndrange_node_cleanup (_cl_command_node *node)
@@ -1158,6 +1247,7 @@ pocl_ndrange_node_cleanup (_cl_command_node *node)
       pocl_aligned_free (node->command.run.arguments[i].value);
     }
   POCL_MEM_FREE (node->command.run.arguments);
+  POCL_MEM_FREE (node->command.run.indirect_pointers);
   pocl_release_owned (POCL_RELEASE_KERNEL, node->command.run.kernel);
 }
 
@@ -1280,52 +1370,42 @@ int pocl_buffers_boundcheck(cl_mem src_buffer,
   return CL_SUCCESS;
 }
 
-int pocl_buffers_overlap(cl_mem src_buffer,
-                         cl_mem dst_buffer,
-                         size_t src_offset,
-                         size_t dst_offset,
-                         size_t size) {
-  /* The regions overlap if src_offset ≤ to dst_offset ≤ to src_offset + size - 1,
-   * or if dst_offset ≤ to src_offset ≤ to dst_offset + size - 1.
+int
+pocl_buffers_overlap (cl_mem src_buffer, cl_mem dst_buffer, size_t src_offset,
+                      size_t dst_offset, size_t size)
+{
+  /** Compare both ranges in their root allocation, including parent/subbuffer
+   * copies. The caller has already validated each range against its buffer.
    */
-  if (src_buffer == dst_buffer) {
-    POCL_RETURN_ERROR_ON(((src_offset <= dst_offset) && (dst_offset <=
-      (src_offset + size - 1))), CL_MEM_COPY_OVERLAP, "dst_offset lies inside \
-      the src region and the src_buffer == dst_buffer");
-    POCL_RETURN_ERROR_ON(((dst_offset <= src_offset) && (src_offset <=
-      (dst_offset + size - 1))), CL_MEM_COPY_OVERLAP, "src_offset lies inside \
-      the dst region and the src_buffer == dst_buffer");
-  }
-
-  /* sub buffers overlap check  */
-  if (src_buffer->parent && dst_buffer->parent &&
-        (src_buffer->parent == dst_buffer->parent)) {
-      src_offset = src_buffer->origin + src_offset;
-      dst_offset = dst_buffer->origin + dst_offset;
-
-      POCL_RETURN_ERROR_ON (((src_offset <= dst_offset)
-                             && (dst_offset <= (src_offset + size - 1))),
-                            CL_MEM_COPY_OVERLAP, "dst_offset lies inside \
-      the src region and src_buffer + dst_buffer are subbuffers of the same buffer");
-      POCL_RETURN_ERROR_ON (((dst_offset <= src_offset)
-                             && (src_offset <= (dst_offset + size - 1))),
-                            CL_MEM_COPY_OVERLAP, "src_offset lies inside \
-      the dst region and src_buffer + dst_buffer are subbuffers of the same buffer");
-
-  }
-
+  if (src_buffer->parent)
+    {
+      src_offset += src_buffer->origin;
+      src_buffer = src_buffer->parent;
+    }
+  if (dst_buffer->parent)
+    {
+      dst_offset += dst_buffer->origin;
+      dst_buffer = dst_buffer->parent;
+    }
+  if (src_buffer == dst_buffer)
+    {
+      size_t distance = src_offset < dst_offset ? dst_offset - src_offset
+                                                : src_offset - dst_offset;
+      POCL_RETURN_ERROR_ON (distance < size, CL_MEM_COPY_OVERLAP,
+                            "source and destination ranges overlap");
+    }
   return CL_SUCCESS;
 }
 
 /*
  * Copyright (c) 2011 The Khronos Group Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this
- * software and /or associated documentation files (the "Materials "), to deal in the Materials
- * without restriction, including without limitation the rights to use, copy, modify, merge,
- * publish, distribute, sublicense, and/or sell copies of the Materials, and to permit persons to
- * whom the Materials are furnished to do so, subject to
- * the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and /or associated documentation files (the "Materials "),
+ * to deal in the Materials without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Materials, and to permit persons to whom the
+ * Materials are furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Materials.
@@ -1334,9 +1414,9 @@ int pocl_buffers_overlap(cl_mem src_buffer,
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE MATERIALS OR THE USE OR OTHER DEALINGS IN
- * THE MATERIALS.
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE MATERIALS OR THE USE OR OTHER
+ * DEALINGS IN THE MATERIALS.
  */
 
 int
@@ -1547,7 +1627,8 @@ pocl_setup_context (cl_context context)
                      < dev->svm_allocation_priority)
             {
               context->svm_allocdev = dev;
-              if (dev->ops->usm_alloc && dev->ops->usm_free)
+              if ((dev->ops->usm_alloc && dev->ops->usm_free) ||
+                  (dev->ops->alloc_pointer && dev->ops->free_pointer))
               {
                   context->usm_allocdev = dev;
               }
@@ -1845,10 +1926,12 @@ static void pocl_free_event_node (_cl_command_node *node)
       break;
 
     case CL_COMMAND_UNMAP_MEM_OBJECT:
-      pocl_unmap_command_finished (node->device, &node->command);
+      pocl_unmap_command_finished (node->device, &node->command,
+                                   node->sync.event.event->status);
       break;
 
     case CL_COMMAND_SVM_MIGRATE_MEM:
+    case CL_COMMAND_MIGRATEMEM_INTEL:
       POCL_MEM_FREE (node->command.svm_migrate.sizes);
       POCL_MEM_FREE (node->command.svm_migrate.svm_pointers);
       break;
@@ -1885,11 +1968,21 @@ pocl_copy_command_node (_cl_command_node *dst_node, _cl_command_node *src_node)
        * NOT the ones in kernel->dyn_arguments; these might differ,
        * because the user could clSetKernelArg() right after
        * clCommandNDRangeKernelKHR(). */
+      dst_node->command.run.indirect_pointers = NULL;
       int errcode = pocl_kernel_copy_args (src_node->command.run.kernel,
                                            src_node->command.run.arguments,
                                            &dst_node->command.run);
       if (errcode != CL_SUCCESS)
         return CL_OUT_OF_HOST_MEMORY;
+      if (src_node->command.run.indirect_pointer_count)
+        {
+          size_t count = src_node->command.run.indirect_pointer_count;
+          dst_node->command.run.indirect_pointers = calloc (count, sizeof (void *));
+          if (!dst_node->command.run.indirect_pointers)
+            return CL_OUT_OF_HOST_MEMORY;
+          memcpy (dst_node->command.run.indirect_pointers,
+                  src_node->command.run.indirect_pointers, count * sizeof (void *));
+        }
       break;
 
     case CL_COMMAND_FILL_BUFFER:
@@ -1914,6 +2007,26 @@ pocl_copy_command_node (_cl_command_node *dst_node, _cl_command_node *src_node)
               src_node->command.svm_fill.pattern_size);
       break;
 
+    case CL_COMMAND_SVM_MIGRATE_MEM:
+    case CL_COMMAND_MIGRATEMEM_INTEL:
+      {
+        size_t count = src_node->command.svm_migrate.num_svm_pointers;
+        dst_node->command.svm_migrate.sizes = calloc (count, sizeof (size_t));
+        dst_node->command.svm_migrate.svm_pointers = calloc (count, sizeof (void *));
+        if (count && (!dst_node->command.svm_migrate.sizes ||
+                      !dst_node->command.svm_migrate.svm_pointers))
+          {
+            POCL_MEM_FREE (dst_node->command.svm_migrate.sizes);
+            POCL_MEM_FREE (dst_node->command.svm_migrate.svm_pointers);
+            return CL_OUT_OF_HOST_MEMORY;
+          }
+        memcpy (dst_node->command.svm_migrate.sizes,
+                src_node->command.svm_migrate.sizes, count * sizeof (size_t));
+        memcpy (dst_node->command.svm_migrate.svm_pointers,
+                src_node->command.svm_migrate.svm_pointers, count * sizeof (void *));
+        break;
+      }
+
     case CL_COMMAND_COMMAND_BUFFER_KHR:
       POname (clRetainCommandBufferKHR) (dst_node->command.replay.buffer);
       POCL_FALLTHROUGH;
@@ -1921,7 +2034,6 @@ pocl_copy_command_node (_cl_command_node *dst_node, _cl_command_node *src_node)
      * because there is no command buffer equivalent of these nodes. */
     case CL_COMMAND_NATIVE_KERNEL:
     case CL_COMMAND_UNMAP_MEM_OBJECT:
-    case CL_COMMAND_SVM_MIGRATE_MEM:
     case CL_COMMAND_SVM_FREE:
       assert (0 && "Unimplemented.");
 
@@ -1971,7 +2083,7 @@ pocl_update_event_finished (cl_int status, const char *func, unsigned line,
    * taken under the event lock, so exactly one caller finishes the event and
    * the other returns cleanly. Bail under the locks we already hold
    * (reverse-order unlock). */
-  if (event->status <= CL_COMPLETE)
+  if (event->status <= CL_COMPLETE || event->finishing)
     {
       POCL_UNLOCK_OBJ (event);
       POCL_UNLOCK_OBJ (cq);
@@ -1983,7 +2095,25 @@ pocl_update_event_finished (cl_int status, const char *func, unsigned line,
     event->time_end = pocl_gettimemono_ns ();
 
   struct pocl_device_ops *ops = cq->device->ops;
+  if (ops->release_command_before_event)
+    {
+      event->finishing = CL_TRUE;
+      pocl_trace_event (event, status);
+      node = event->command;
+      event->command = NULL;
+      POCL_UNLOCK_OBJ (event);
+      POCL_UNLOCK_OBJ (cq);
+      if (node)
+        {
+          pocl_free_event_node (node);
+          node = NULL;
+          pocl_retry_releases ();
+        }
+      POCL_LOCK_OBJ (cq);
+      POCL_LOCK_OBJ (event);
+    }
   event->status = status;
+  event->finishing = CL_FALSE;
   if (cq->device->ops->update_event)
     ops->update_event (cq->device, event);
 
@@ -2010,7 +2140,13 @@ pocl_update_event_finished (cl_int status, const char *func, unsigned line,
   /* note that we must unlock the CmqQ before calling pocl_event_updated,
    * because it calls event callbacks, which can have calls to
    * clEnqueueSomething() */
-  pocl_event_updated (event, status);
+  if (ops->release_command_before_event)
+    {
+      if (event->callback_list)
+        pocl_event_cb_push (event, status);
+    }
+  else
+    pocl_event_updated (event, status);
   command_buffer = event->command_buffer;
   node = event->command;
   event->command = NULL;
@@ -2472,6 +2608,108 @@ pocl_fill_aligned_buf_with_pattern (void *__restrict__ ptr, size_t offset,
   return 0;
 }
 
+unsigned
+pocl_program_find_device (cl_program program, cl_device_id device)
+{
+  device = pocl_real_dev (device);
+  for (unsigned index = 0; index < program->num_devices; ++index)
+    if (program->devices[index] == device)
+      return index;
+  return CL_UINT_MAX;
+}
+
+int
+pocl_program_device_executable (cl_program program, unsigned index)
+{
+  if (index >= program->num_devices)
+    return 0;
+  if (!program->device_states)
+    return program->build_status == CL_BUILD_SUCCESS;
+  const pocl_program_device_state *state = &program->device_states[index];
+  return state->status == CL_BUILD_SUCCESS &&
+         (state->binary_type == CL_PROGRAM_BINARY_TYPE_EXECUTABLE ||
+          program->num_builtin_kernels > 0);
+}
+
+int
+pocl_program_has_executable (cl_program program)
+{
+  for (unsigned index = 0; index < program->num_devices; ++index)
+    if (pocl_program_device_executable (program, index))
+      return 1;
+  return 0;
+}
+
+const char *
+pocl_program_device_options (cl_program program, unsigned index)
+{
+  if (!program->device_states || index >= program->num_devices ||
+      (program->build_in_progress && program->active_build_device == index))
+    return program->compiler_options;
+  return program->device_states[index].compiler_options;
+}
+
+cl_program_binary_type
+pocl_program_device_binary_type (cl_program program, unsigned index)
+{
+  if (!program->device_states || index >= program->num_devices ||
+      (program->build_in_progress && program->active_build_device == index))
+    return program->binary_type;
+  return program->device_states[index].binary_type;
+}
+
+unsigned
+pocl_program_device_flush_denorms (cl_program program, unsigned index)
+{
+  if (!program->device_states || index >= program->num_devices ||
+      (program->build_in_progress && program->active_build_device == index))
+    return program->flush_denorms;
+  return program->device_states[index].flush_denorms;
+}
+
+pocl_kernel_metadata_t *
+pocl_program_find_device_kernel (cl_program program, unsigned index, const char *name)
+{
+  if (!pocl_program_device_executable (program, index))
+    return NULL;
+  pocl_kernel_metadata_t *metadata = program->device_states
+                                      ? program->device_states[index].kernel_meta
+                                      : program->kernel_meta;
+  size_t count = program->device_states ? program->device_states[index].num_kernels
+                                        : program->num_kernels;
+  for (size_t i = 0; i < count; ++i)
+    if (metadata[i].name && strcmp (metadata[i].name, name) == 0)
+      return &metadata[i];
+  return NULL;
+}
+
+pocl_kernel_metadata_t *
+pocl_kernel_metadata_for_device (cl_kernel kernel, cl_device_id device)
+{
+  if (!kernel->device_meta)
+    return kernel->meta;
+  for (unsigned i = 0; i < kernel->program->num_devices; ++i)
+    if (kernel->program->devices[i] == pocl_real_dev (device))
+      return kernel->device_meta[i];
+  return NULL;
+}
+
+void
+pocl_free_program_device_metadata (cl_program program, unsigned index)
+{
+  pocl_program_device_state *state = &program->device_states[index];
+  pocl_kernel_metadata_t *saved = program->kernel_meta;
+  size_t saved_count = program->num_kernels;
+  program->kernel_meta = state->kernel_meta;
+  program->num_kernels = state->num_kernels;
+  for (unsigned i = 0; i < program->num_kernels; ++i)
+    pocl_free_kernel_metadata (program, i);
+  POCL_MEM_FREE (state->kernel_meta);
+  state->num_kernels = 0;
+  program->kernel_meta = saved;
+  program->num_kernels = saved_count;
+}
+
 void
 pocl_free_kernel_metadata (cl_program program, unsigned kernel_i)
 {
@@ -2479,7 +2717,7 @@ pocl_free_kernel_metadata (cl_program program, unsigned kernel_i)
   unsigned j;
   POCL_MEM_FREE (meta->attributes);
   POCL_MEM_FREE (meta->name);
-  for (j = 0; j < meta->num_args; ++j)
+  for (j = 0; meta->arg_info && j < meta->num_args; ++j)
     {
       POCL_MEM_FREE (meta->arg_info[j].name);
       POCL_MEM_FREE (meta->arg_info[j].type_name);
@@ -2487,6 +2725,7 @@ pocl_free_kernel_metadata (cl_program program, unsigned kernel_i)
   POCL_MEM_FREE (meta->max_subgroups);
   POCL_MEM_FREE (meta->compile_subgroups);
   POCL_MEM_FREE (meta->max_workgroup_size);
+  POCL_MEM_FREE (meta->device_reqd_wg_sizes);
   POCL_MEM_FREE (meta->preferred_wg_multiple);
   POCL_MEM_FREE (meta->local_mem_size);
   POCL_MEM_FREE (meta->private_mem_size);

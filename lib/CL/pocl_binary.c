@@ -21,6 +21,7 @@
    THE SOFTWARE.
 */
 
+#include "pocl_util.h"
 #include <stdint.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -722,7 +723,10 @@ pocl_binary_serialize(cl_program program, unsigned device_i, size_t *size)
   unsigned char *end_of_buffer = buffer + sizeof_buffer;
   unsigned char *start = buffer;
 
-  unsigned num_kernels = program->num_kernels;
+  unsigned num_kernels = program->device_states
+      ? program->device_states[device_i].num_kernels : program->num_kernels;
+  pocl_kernel_metadata_t *metadata = program->device_states
+      ? program->device_states[device_i].kernel_meta : program->kernel_meta;
 
   char basedir[POCL_MAX_PATHNAME_LENGTH];
   pocl_cache_program_path (basedir, program, device_i);
@@ -734,9 +738,9 @@ pocl_binary_serialize(cl_program program, unsigned device_i, size_t *size)
   BUFFER_STORE(POCLCC_VERSION, uint32_t);
   BUFFER_STORE(num_kernels, uint32_t);
   uint64_t flags = POCL_BINARY_HAS_PROG_SCOPE_VARS;
-  if (program->flush_denorms)
+  if (pocl_program_device_flush_denorms (program, device_i))
     flags |= POCL_BINARY_FLAG_FLUSH_DENORMS;
-  flags |= ((uint64_t)program->binary_type << 32);
+  flags |= ((uint64_t)pocl_program_device_binary_type (program, device_i) << 32);
   BUFFER_STORE (flags, uint64_t);
 
   unsigned char *root_entries_save = buffer;
@@ -780,7 +784,7 @@ pocl_binary_serialize(cl_program program, unsigned device_i, size_t *size)
   for (i=0; i < num_kernels; i++)
     {
       buffer = pocl_binary_serialize_kernel_to_buffer
-                 (program, &program->kernel_meta[i], device_i, buffer);
+                 (program, &metadata[i], device_i, buffer);
       assert(buffer <= end_of_buffer);
     }
 
@@ -803,6 +807,11 @@ pocl_binary_deserialize(cl_program program, unsigned device_i)
   buffer = read_header(&b, buffer);
   program->flush_denorms = (b.flags & POCL_BINARY_FLAG_FLUSH_DENORMS);
   program->binary_type = (b.flags >> 32);
+  if (program->device_states)
+    {
+      program->device_states[device_i].binary_type = program->binary_type;
+      program->device_states[device_i].flush_denorms = program->flush_denorms;
+    }
   program->global_var_total_size[device_i] = b.program_scope_var_bytes;
 
   if (dev->num_serialize_entries == 0)

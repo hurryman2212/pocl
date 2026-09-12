@@ -108,6 +108,16 @@ create_program_skeleton (cl_context context, cl_uint num_devices,
 
   POCL_INIT_OBJECT (program, context);
 
+  program->device_states = calloc (num_devices, sizeof (*program->device_states));
+  if (!program->device_states)
+    {
+      errcode = CL_OUT_OF_HOST_MEMORY;
+      goto ERROR;
+    }
+  for (i = 0; i < num_devices; ++i)
+    program->device_states[i].status = CL_BUILD_NONE;
+  program->active_build_device = CL_UINT_MAX;
+
   if ((program->binary_sizes = (size_t *)calloc (num_devices, sizeof (size_t)))
           == NULL
       || (program->binaries
@@ -196,6 +206,9 @@ create_program_skeleton (cl_context context, cl_uint num_devices,
               program->binary_sizes[i] = lengths[i];
               program->binaries[i] = (unsigned char *)malloc (lengths[i]);
               memcpy (program->binaries[i], binaries[i], lengths[i]);
+              if (device->ops->get_binary_type)
+                program->device_states[i].binary_type = device->ops->get_binary_type (
+                    device, lengths[i], (const char *)binaries[i]);
               if (binary_status != NULL)
                 binary_status[i] = CL_SUCCESS;
             }
@@ -233,6 +246,7 @@ ERROR:
       POCL_MEM_FREE (program->pocl_binaries);
       POCL_MEM_FREE (program->pocl_binary_sizes);
       POCL_MEM_FREE (program->data);
+      POCL_MEM_FREE (program->device_states);
       POCL_MEM_FREE (program->global_var_total_size);
       POCL_MEM_FREE (program->llvm_irs);
       POCL_MEM_FREE (program->gvar_storage);

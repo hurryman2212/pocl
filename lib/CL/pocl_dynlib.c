@@ -78,6 +78,12 @@ pocl_dynlib_symbol_address (void *dynlib_handle, const char *symbol_name)
   return addr;
 }
 
+void *
+pocl_dynlib_symbol_address_optional (void *dynlib_handle, const char *symbol_name)
+{
+  return dlsym (dynlib_handle, symbol_name);
+}
+
 const char *
 pocl_dynlib_pathname (void *address)
 {

@@ -955,8 +955,8 @@ pocl_llvm_run_pocl_passes(llvm::Module *Bitcode,
                        Device->max_work_item_sizes[2]);
 
   std::string Opts;
-  if (Program->compiler_options)
-    Opts.assign(Program->compiler_options);
+  if (const char *Options = pocl_program_device_options(Program, pocl_program_find_device(Program, Device)))
+    Opts.assign(Options);
   bool Optimize = (Opts.find("-cl-opt-disable") == std::string::npos);
 #ifdef DUMP_LLVM_PASS_TIMINGS
   llvm::TimePassesIsEnabled = true;

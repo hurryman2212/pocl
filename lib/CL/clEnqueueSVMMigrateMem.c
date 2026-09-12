@@ -56,9 +56,16 @@ pocl_svm_migrate_mem_common (cl_command_type command_type,
                         "invalid flags given\n");
 
   size_t *actual_sizes = calloc (num_svm_pointers, sizeof (size_t));
+  if (!actual_sizes)
+    return CL_OUT_OF_HOST_MEMORY;
   if (sizes)
     memcpy (actual_sizes, sizes, num_svm_pointers * sizeof (size_t));
   void **ptrs = calloc (num_svm_pointers, sizeof (void *));
+  if (!ptrs)
+    {
+      POCL_MEM_FREE (actual_sizes);
+      return CL_OUT_OF_HOST_MEMORY;
+    }
   memcpy (ptrs, svm_pointers, num_svm_pointers * sizeof (void *));
 
   for (i = 0; i < num_svm_pointers; ++i)
@@ -83,16 +90,16 @@ pocl_svm_migrate_mem_common (cl_command_type command_type,
   if (errcode != CL_SUCCESS)
     goto ERROR;
 
-  errcode
-    = pocl_create_command (&cmd, command_queue, command_type, event,
-                           num_events_in_wait_list, event_wait_list, NULL);
-
+  _cl_command_t payload = { 0 };
+  payload.svm_migrate.svm_pointers = ptrs;
+  payload.svm_migrate.num_svm_pointers = num_svm_pointers;
+  payload.svm_migrate.sizes = actual_sizes;
+  payload.svm_migrate.flags = flags;
+  errcode = pocl_create_command_with_payload (
+      &cmd, command_queue, command_type, event, num_events_in_wait_list,
+      event_wait_list, NULL, &payload);
   if (errcode != CL_SUCCESS)
     goto ERROR;
-
-  cmd->command.svm_migrate.svm_pointers = ptrs;
-  cmd->command.svm_migrate.num_svm_pointers = num_svm_pointers;
-  cmd->command.svm_migrate.sizes = actual_sizes;
 
   pocl_command_enqueue (command_queue, cmd);
 

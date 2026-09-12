@@ -48,6 +48,7 @@
 #include "pocl_debug.h"
 #include "pocl_dynlib.h"
 #include "pocl_export.h"
+#include "pocl_file_util.h"
 #include "pocl_runtime_config.h"
 #include "pocl_tracing.h"
 #include "pocl_util.h"
@@ -242,7 +243,8 @@ POCL_EXPORT int pocl_offline_compile = 0;
 
 /* first setup */
 static unsigned first_init_done = 0;
-static unsigned init_in_progress = 0;
+static _Thread_local unsigned init_in_progress = 0;
+static cl_int initial_discovery_error = CL_DEVICE_NOT_FOUND;
 static uint64_t device_count[POCL_NUM_DEVICE_TYPES];
 /* Indexes each device added to the platform by setting the device id. First
  * used and modified during init, to index devices present since launch. May
@@ -251,6 +253,25 @@ static uint64_t dev_index;
 
 /* after calling drivers uninit, we may have to re-init the devices. */
 static unsigned devices_active = 0;
+/* Protected by pocl_init_lock; retained across failed lifecycle attempts. */
+static unsigned services_active = 0;
+static unsigned char *device_runtime_active = NULL;
+static size_t device_runtime_capacity = 0;
+
+static cl_int
+reserve_device_runtime (size_t count)
+{
+  if (count <= device_runtime_capacity)
+    return CL_SUCCESS;
+  unsigned char *states = realloc (device_runtime_active, count);
+  if (!states)
+    return CL_OUT_OF_HOST_MEMORY;
+  memset (states + device_runtime_capacity, 0, count - device_runtime_capacity);
+  device_runtime_active = states;
+  device_runtime_capacity = count;
+  return CL_SUCCESS;
+}
+
 
 extern pocl_lock_t pocl_init_lock;
 
@@ -262,6 +283,25 @@ static void
 get_pocl_device_lib_path (char *result, char *device_name, int absolute_path)
 {
   const char *soname = NULL;
+  const char *override = pocl_get_string_option ("POCL_DRIVER_PATH", NULL);
+  if (absolute_path && override && override[0])
+    {
+#if defined(_WIN32)
+      const char *prefix = "pocl-devices-";
+      const char *suffix = ".dll";
+#elif defined(__APPLE__)
+      const char *prefix = "libpocl-devices-";
+      const char *suffix = ".dylib";
+#else
+      const char *prefix = "libpocl-devices-";
+      const char *suffix = ".so";
+#endif
+      int length = snprintf (result, PATH_MAX, "%s%s%s%s%s", override,
+                              POCL_PATH_SEPARATOR, prefix, device_name, suffix);
+      if (length > 0 && length < PATH_MAX && pocl_exists (result))
+        return;
+      result[0] = 0;
+    }
   if (absolute_path
       && (soname = pocl_dynlib_pathname ((void *)get_pocl_device_lib_path)))
     {
@@ -438,6 +478,13 @@ pocl_count_auxiliary_contexts (void)
 cl_int
 pocl_prepare_uninit_devices (void)
 {
+  for (unsigned i = 0; i < POCL_NUM_DEVICE_TYPES; ++i)
+    if (pocl_devices_init_ops[i] && pocl_device_ops[i].prepare_uninit)
+      {
+        cl_int status = pocl_device_ops[i].prepare_uninit (NULL);
+        if (status != CL_SUCCESS)
+          return status;
+      }
   cl_device_id device;
   LL_FOREACH_ATOMIC (pocl_devices, device)
   if (device->ops->prepare_uninit)
@@ -455,13 +502,10 @@ pocl_uninit_devices ()
   cl_int retval = CL_SUCCESS;
 
   POCL_LOCK (pocl_init_lock);
-  if ((!devices_active) || (POCL_ATOMIC_LOAD (pocl_num_devices) == 0))
+  if (!devices_active && !services_active)
     goto FINISH;
 
   POCL_MSG_PRINT_GENERAL ("UNINIT all devices\n");
-
-  pocl_event_tracing_finish ();
-  pocl_async_callback_finish ();
 
   unsigned i, j;
   cl_device_id d;
@@ -476,22 +520,29 @@ pocl_uninit_devices ()
       {
         if (d->ops != &pocl_device_ops[i])
           continue;
-        if (*(d->available) == CL_FALSE && !d->ops->prepare_uninit)
+        if (!device_runtime_active[d->dev_id])
           continue;
         if (d->ops->reinit == NULL || d->ops->uninit == NULL)
           continue;
-        cl_int ret = d->ops->uninit (j, d);
+        cl_int ret = d->ops->uninit (d->driver_instance, d);
         if (ret != CL_SUCCESS)
           {
             retval = ret;
             goto FINISH;
           }
+        device_runtime_active[d->dev_id] = 0;
         /* The registry retains callbacks for the next reinit; closing the
            module here would invalidate every device's operation table. */
         j++;
       }
     }
 
+  if (services_active)
+    {
+      pocl_event_tracing_finish ();
+      pocl_async_callback_finish ();
+      services_active = 0;
+    }
 FINISH:
 #ifdef ENABLE_SIGFPE_HANDLER
   pocl_destroy_sigfpe_handler ();
@@ -517,9 +568,12 @@ pocl_reinit_devices ()
 
   POCL_MSG_WARN ("REINIT all devices\n");
 
-  /*  TODO: reinit tracing */
-  /* pocl_event_tracing_init (); */
-  pocl_async_callback_init ();
+  if (!services_active)
+    {
+      pocl_event_tracing_init ();
+      pocl_async_callback_init ();
+      services_active = 1;
+    }
 
   unsigned i, j;
 
@@ -539,17 +593,20 @@ pocl_reinit_devices ()
       {
         if (d->ops != &pocl_device_ops[i])
           continue;
+        if (device_runtime_active[d->dev_id])
+          continue;
         /* Availability may point into driver data released by uninit. */
         if (d->ops->reinit == NULL || d->ops->uninit == NULL)
           continue;
-        snprintf (env_name, 1024, "POCL_%s%d_PARAMETERS", dev_name, j);
-        cl_int ret = d->ops->reinit (j, d, getenv (env_name));
+        snprintf (env_name, 1024, "POCL_%s%u_PARAMETERS", dev_name, d->driver_instance);
+        cl_int ret = d->ops->reinit (d->driver_instance, d, getenv (env_name));
         if (ret != CL_SUCCESS)
           {
             retval = ret;
             goto FINISH;
           }
 
+        device_runtime_active[d->dev_id] = 1;
         j++;
       }
     }
@@ -585,11 +642,18 @@ add_discovered_device_callback (const char *dev_parameters,
   pocl_stderr_is_a_tty = isatty (fileno (stderr));
 #endif
 
+  errcode = reserve_device_runtime (dev_index + 1);
+  if (errcode != CL_SUCCESS)
+    {
+      POCL_UNLOCK (pocl_init_lock);
+      return errcode;
+    }
   cl_device_id dev;
   dev = (cl_device_id)calloc (1, sizeof (*dev));
 
   dev->ops = &pocl_device_ops[pocl_dev_type_idx];
   dev->dev_id = dev_index;
+  dev->driver_instance = pocl_dev_type_idx;
   dev->global_mem_id = dev_index;
   POCL_INIT_OBJECT (dev, pocl_dev_platform);
   dev->driver_version = POCL_VERSION_FULL;
@@ -601,6 +665,7 @@ add_discovered_device_callback (const char *dev_parameters,
                       "Device %i / %s initialization failed! \n",
                       pocl_dev_type_idx, dev_name);
 
+  device_runtime_active[dev->dev_id] = 1;
   LL_APPEND_ATOMIC (pocl_devices, dev);
   POCL_ATOMIC_INC (device_count[pocl_dev_type_idx]);
   POCL_ATOMIC_INC (pocl_num_devices);
@@ -680,9 +745,11 @@ pocl_init_devices (cl_platform_id platform)
       if (!devices_active)
         {
           POCL_MSG_PRINT_GENERAL ("FIRST INIT done; REINIT all devices\n");
-          pocl_reinit_devices (); // TODO err check
+          errcode = pocl_reinit_devices ();
+          if (errcode != CL_SUCCESS)
+            goto ERROR;
         }
-      errcode = pocl_num_devices ? CL_SUCCESS : CL_DEVICE_NOT_FOUND;
+      errcode = pocl_num_devices ? CL_SUCCESS : initial_discovery_error;
       goto ERROR;
     }
   else
@@ -693,6 +760,8 @@ pocl_init_devices (cl_platform_id platform)
 
   /* first time initialization */
   unsigned i, j;
+  uint64_t probed_devices = 0;
+  cl_int first_failure = CL_SUCCESS;
   char env_name[MAX_ENV_NAME_LEN] = { 0 };
   char dev_name[MAX_DEV_NAME_LEN] = { 0 };
 
@@ -708,9 +777,12 @@ pocl_init_devices (cl_platform_id platform)
 
   pocl_init_builtin_kernel_metadata ();
 
-  pocl_event_tracing_init ();
-
-  pocl_async_callback_init ();
+  if (!services_active)
+    {
+      pocl_event_tracing_init ();
+      pocl_async_callback_init ();
+      services_active = 1;
+    }
 
 #ifdef HAVE_SLEEP
   int delay = pocl_get_int_option ("POCL_STARTUP_DELAY", 0);
@@ -761,6 +833,19 @@ pocl_init_devices (cl_platform_id platform)
                                  device_library);
                 }
             }
+          char cookie_symbol[MAX_DEV_NAME_LEN + 32];
+          snprintf (cookie_symbol, sizeof (cookie_symbol),
+                    "pocl_%s_driver_abi_cookie", pocl_device_types[i]);
+          uint64_t (*cookie) (void) = (uint64_t (*) (void))
+              pocl_dynlib_symbol_address_optional (pocl_device_handles[i], cookie_symbol);
+          if (cookie && cookie () != pocl_get_driver_abi_cookie ())
+            {
+              pocl_dynlib_close (pocl_device_handles[i]);
+              pocl_device_handles[i] = NULL;
+              pocl_devices_init_ops[i] = NULL;
+              device_count[i] = 0;
+              continue;
+            }
           strcat (init_device_ops_name, "pocl_");
           strcat (init_device_ops_name, pocl_device_types[i]);
           strcat (init_device_ops_name, "_init_device_ops");
@@ -802,7 +887,7 @@ pocl_init_devices (cl_platform_id platform)
 
       /* Probe and add the result to the number of probed devices */
       device_count[i] = pocl_device_ops[i].probe (&pocl_device_ops[i]);
-      pocl_num_devices += device_count[i];
+      probed_devices += device_count[i];
     }
 
   dev_index = 0;
@@ -813,7 +898,7 @@ pocl_init_devices (cl_platform_id platform)
    * then, we return with CL_SUCCESS after which discovery process is
    * initialised. The disocvery process may find devices, hence we don't return
    * with error. */
-  if (pocl_get_bool_option (POCL_DISCOVERY_ENV, 0) && 0 == pocl_num_devices)
+  if (pocl_get_bool_option (POCL_DISCOVERY_ENV, 0) && 0 == probed_devices)
     {
       POCL_MSG_WARN (
         "No devices found by probing: %s=%s. Trying through discovery. \n",
@@ -822,62 +907,81 @@ pocl_init_devices (cl_platform_id platform)
       errcode = pocl_init_device_discovery (platform);
       goto ERROR;
     }
-  POCL_GOTO_ERROR_ON ((pocl_num_devices == 0), CL_DEVICE_NOT_FOUND,
-                      "no devices found by probing. %s=%s\n", POCL_DEVICES_ENV,
-                      dev_env);
+  if (probed_devices == 0)
+    {
+      first_init_done = 1;
+      devices_active = 1;
+      initial_discovery_error = errcode = CL_DEVICE_NOT_FOUND;
+      goto ERROR;
+    }
 
-  /* Init infos for each probed devices */
+  errcode = reserve_device_runtime (probed_devices);
+  if (errcode != CL_SUCCESS)
+    {
+      first_init_done = 1;
+      devices_active = 1;
+      initial_discovery_error = errcode;
+      goto ERROR;
+    }
+
+  /* Cache one deterministic discovery pass. Failed initial slots require a
+   * new process; already-published survivors are never initialized twice. */
   for (i = 0; i < POCL_NUM_DEVICE_TYPES; ++i)
     {
       if (pocl_devices_init_ops[i] == NULL)
         continue;
       pocl_str_toupper (dev_name, pocl_device_ops[i].device_name);
-      assert(pocl_device_ops[i].init);
-
+      uint64_t published = 0;
       for (j = 0; j < device_count[i]; ++j)
         {
-          cl_device_id dev;
-          dev = (cl_device_id)calloc (1, sizeof (*dev));
-
+          cl_device_id dev = calloc (1, sizeof (*dev));
+          if (!dev)
+            {
+              if (first_failure == CL_SUCCESS)
+                first_failure = CL_OUT_OF_HOST_MEMORY;
+              continue;
+            }
           dev->ops = &pocl_device_ops[i];
           dev->dev_id = dev_index;
-          /* The default value for the global memory space identifier is
-             the same as the device id. The device instance can then override
-             it to point to some other device's global memory id in case of
-             a shared global memory. */
+          dev->driver_instance = j;
           dev->global_mem_id = dev_index;
           POCL_INIT_OBJECT (dev, platform);
           dev->driver_version = pocl_get_string_option (
               "POCL_DRIVER_VERSION_OVERRIDE", POCL_VERSION_FULL);
-
-          if (dev->version == NULL)
+          if (!dev->version)
             dev->version = "OpenCL 3.0 pocl";
-
-          /* Check if there are device-specific parameters set in the
-             POCL_DEVICEn_PARAMETERS env. */
-          POCL_GOTO_ERROR_ON (
-              (snprintf (env_name, MAX_ENV_NAME_LEN,
-                         "POCL_%s%d_PARAMETERS", dev_name, j)
-               < 0),
-              CL_OUT_OF_HOST_MEMORY, "Unable to generate the env string.");
-
-          errcode = dev->ops->init (j, dev, getenv (env_name));
-          POCL_GOTO_ERROR_ON ((errcode != CL_SUCCESS), errcode,
-                              "Device %i / %s initialization failed! \n", j,
-                              dev_name);
-
+          int length = snprintf (env_name, MAX_ENV_NAME_LEN,
+                                  "POCL_%s%u_PARAMETERS", dev_name, j);
+          cl_int status = length < 0 || length >= MAX_ENV_NAME_LEN
+                              ? CL_OUT_OF_HOST_MEMORY
+                              : dev->ops->init (j, dev, getenv (env_name));
+          if (status != CL_SUCCESS)
+            {
+              /* Failed drivers retain their own partial state, not this
+               * unpublished frontend wrapper. */
+              POCL_DESTROY_OBJECT (dev);
+              free (dev);
+              if (first_failure == CL_SUCCESS)
+                first_failure = status;
+              continue;
+            }
+          device_runtime_active[dev->dev_id] = 1;
           LL_APPEND_ATOMIC (pocl_devices, dev);
-
+          POCL_ATOMIC_INC (pocl_num_devices);
           ++dev_index;
+          ++published;
         }
-      if (pocl_device_ops[i].post_init != NULL)
-        {
-          pocl_device_ops[i].post_init(&pocl_device_ops[i]);
-        }
+      device_count[i] = published;
+      if (published && pocl_device_ops[i].post_init)
+        pocl_device_ops[i].post_init (&pocl_device_ops[i]);
     }
+  initial_discovery_error = first_failure == CL_SUCCESS
+                                ? CL_DEVICE_NOT_FOUND : first_failure;
   first_init_done = 1;
   devices_active = 1;
   errcode = pocl_init_device_discovery (platform);
+  if (errcode == CL_SUCCESS && pocl_num_devices == 0)
+    errcode = initial_discovery_error;
 ERROR:
   init_in_progress = 0;
   POCL_UNLOCK (pocl_init_lock);

@@ -136,6 +136,16 @@ cl_int pocl_create_command (_cl_command_node **cmd,
                             const cl_event *wait_list,
                             pocl_buffer_migration_info *migration_infos);
 
+/* Copy command fields before driver admission; caller owns payload on failure. */
+cl_int
+pocl_create_command_with_payload (_cl_command_node **cmd,
+                                  cl_command_queue command_queue,
+                                  cl_command_type command_type,
+                                  cl_event *event_p, cl_uint num_events,
+                                  const cl_event *wait_list,
+                                  pocl_buffer_migration_info *migration_infos,
+                                  const _cl_command_t *payload);
+
 cl_int
 pocl_create_command_struct (_cl_command_node **cmd,
                             cl_command_queue command_queue,
@@ -167,6 +177,14 @@ int pocl_alloc_or_retain_mem_host_ptr (cl_mem mem);
 
 POCL_EXPORT
 int pocl_release_mem_host_ptr (cl_mem mem);
+
+/* Discard a failed map before its terminal event becomes observable. */
+POCL_EXPORT cl_int
+pocl_map_command_failed (cl_device_id dev, _cl_command_t *cmd);
+
+/* Complete mapping bookkeeping before a driver's functional event response. */
+POCL_EXPORT cl_int
+pocl_unmap_command_finished (cl_device_id dev, _cl_command_t *cmd, cl_int status);
 
 void pocl_ndrange_node_cleanup (_cl_command_node *node);
 
@@ -334,6 +352,17 @@ pocl_status_to_str (int status);
 POCL_EXPORT
 const char *
 pocl_command_to_str (cl_command_type cmd);
+
+/* Stable per-device compiler and executable state. */
+POCL_EXPORT unsigned pocl_program_find_device (cl_program program, cl_device_id device);
+POCL_EXPORT int pocl_program_device_executable (cl_program program, unsigned index);
+POCL_EXPORT int pocl_program_has_executable (cl_program program);
+POCL_EXPORT const char *pocl_program_device_options (cl_program program, unsigned index);
+POCL_EXPORT cl_program_binary_type pocl_program_device_binary_type (cl_program program, unsigned index);
+POCL_EXPORT unsigned pocl_program_device_flush_denorms (cl_program program, unsigned index);
+POCL_EXPORT pocl_kernel_metadata_t *pocl_kernel_metadata_for_device (cl_kernel kernel, cl_device_id device);
+POCL_EXPORT pocl_kernel_metadata_t *pocl_program_find_device_kernel (cl_program program, unsigned index, const char *name);
+POCL_EXPORT void pocl_free_program_device_metadata (cl_program program, unsigned index);
 
 void pocl_free_kernel_metadata (cl_program program, unsigned kernel_i);
 

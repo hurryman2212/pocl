@@ -36,7 +36,14 @@ POname(clFlush)(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
     (POCL_ATOMIC_LOAD_PTR (command_queue->device->available) == CL_FALSE),
     CL_DEVICE_NOT_AVAILABLE);
 
-  if(command_queue->device->ops->flush)
+  if (command_queue->device->ops->flush_checked)
+    {
+      cl_int result = command_queue->device->ops->flush_checked (
+          command_queue->device, command_queue);
+      if (result != CL_SUCCESS)
+        return result;
+    }
+  else if (command_queue->device->ops->flush)
     command_queue->device->ops->flush (command_queue->device, command_queue);
 
   pocl_retry_releases ();

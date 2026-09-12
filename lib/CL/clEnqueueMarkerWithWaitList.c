@@ -55,6 +55,7 @@ CL_API_SUFFIX__VERSION_1_2
     goto ERROR;
 
   cmd->command.marker.data = command_queue->device->data;
+  cmd->command.barrier.has_wait_list = num_events_in_wait_list > 0;
   pocl_command_enqueue (command_queue, cmd);
 
   return CL_SUCCESS;

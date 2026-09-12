@@ -68,19 +68,15 @@ POname (clEnqueueMemAdviseINTEL) (cl_command_queue command_queue,
     return errcode;
 
   _cl_command_node *cmd = NULL;
-  errcode = pocl_create_command (
-    &cmd, command_queue, CL_COMMAND_MEMADVISE_INTEL, event,
-    num_events_in_wait_list, event_wait_list, NULL);
-
+  _cl_command_t payload = { 0 };
+  payload.mem_advise.ptr = ptr;
+  payload.mem_advise.size = size;
+  payload.mem_advise.advice = advice;
+  errcode = pocl_create_command_with_payload (
+      &cmd, command_queue, CL_COMMAND_MEMADVISE_INTEL, event,
+      num_events_in_wait_list, event_wait_list, NULL, &payload);
   if (errcode != CL_SUCCESS)
-    {
-      POCL_MEM_FREE (cmd);
-      return errcode;
-    }
-
-  cmd->command.mem_advise.ptr = ptr;
-  cmd->command.mem_advise.size = size;
-  cmd->command.mem_advise.advice = advice;
+    return errcode;
 
   pocl_command_enqueue (command_queue, cmd);
 

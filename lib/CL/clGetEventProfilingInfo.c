@@ -51,32 +51,32 @@ POname(clGetEventProfilingInfo)(cl_event event,
   POCL_RETURN_ERROR_ON((event->status != CL_COMPLETE), CL_PROFILING_INFO_NOT_AVAILABLE,
     "Cannot return profiling info on events not CL_COMPLETE yet\n");
 
-  if (param_value)
-  {
-    if (param_value_size < value_size) return CL_INVALID_VALUE;
-
-    switch (param_name)
+  cl_ulong value;
+  switch (param_name)
     {
     case CL_PROFILING_COMMAND_QUEUED:
-      *(cl_ulong*)param_value = event->time_queue;
+      value = event->time_queue;
       break;
     case CL_PROFILING_COMMAND_SUBMIT:
-      *(cl_ulong*)param_value = event->time_submit;
+      value = event->time_submit;
       break;
     case CL_PROFILING_COMMAND_START:
-      *(cl_ulong*)param_value = event->time_start;
+      value = event->time_start;
       break;
     case CL_PROFILING_COMMAND_END:
-      *(cl_ulong*)param_value = event->time_end;
-      break;
     case CL_PROFILING_COMMAND_COMPLETE:
-      /* Child commands not supported */
-      *(cl_ulong *)param_value = event->time_end;
+      /* Device-side child enqueue is not advertised by these devices. */
+      value = event->time_end;
       break;
     default:
       return CL_INVALID_VALUE;
     }
-  }
+  if (param_value)
+    {
+      if (param_value_size < value_size)
+        return CL_INVALID_VALUE;
+      memcpy (param_value, &value, value_size);
+    }
 
   if (param_value_size_ret)
     *param_value_size_ret = value_size;
