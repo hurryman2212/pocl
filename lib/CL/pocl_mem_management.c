@@ -959,7 +959,7 @@ FINISH_VER_SETUP:
 
       /* Because of the explicit event. */
       if (ev_export)
-        POname (clReleaseEvent) (ev_export);
+        pocl_release_event_owned (ev_export);
 
       last_migration_event = ev_import;
     }
@@ -982,7 +982,7 @@ FINISH_VER_SETUP:
           POname (clRetainEvent) (last_migration_event);
           pocl_create_event_sync (*prev_migr_event, last_migration_event);
           if (*prev_migr_event != NULL)
-            POname (clReleaseEvent) (*prev_migr_event);
+            pocl_release_event_owned (*prev_migr_event);
           *prev_migr_event = last_migration_event;
         }
       pocl_create_event_sync (last_migration_event, user_cmd);
@@ -994,10 +994,10 @@ FINISH_VER_SETUP:
       if (readonly)
         {
           mem->last_updater = last_migration_event;
-          POname (clReleaseEvent) (user_cmd);
+          pocl_release_event_owned (user_cmd);
         }
       else /* because explicit event */
-        POname (clReleaseEvent) (last_migration_event);
+        pocl_release_event_owned (last_migration_event);
     }
   POCL_UNLOCK_OBJ (mem);
 

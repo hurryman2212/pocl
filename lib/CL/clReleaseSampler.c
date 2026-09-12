@@ -61,7 +61,7 @@ CL_API_SUFFIX__VERSION_1_0
       POCL_MEM_FREE (sampler->device_data);
       POCL_DESTROY_OBJECT (sampler);
       POCL_MEM_FREE (sampler);
-      POname (clReleaseContext) (context);
+      pocl_release_owned (POCL_RELEASE_CONTEXT, context);
     }
   else
     {

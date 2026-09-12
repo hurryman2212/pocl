@@ -63,9 +63,9 @@ POname(clReleaseEvent)(cl_event event) CL_API_SUFFIX__VERSION_1_0
         event->queue->device->ops->free_event_data(event);
 
       if (event->queue)
-        PoCLReleaseCommandQueue (event->queue);
+        pocl_release_owned (POCL_RELEASE_QUEUE, event->queue);
       else
-        POname(clReleaseContext) (event->context);
+        pocl_release_owned (POCL_RELEASE_CONTEXT, event->context);
 
       POCL_DESTROY_OBJECT (event);
       pocl_mem_manager_free_event (event);
@@ -76,6 +76,7 @@ POname(clReleaseEvent)(cl_event event) CL_API_SUFFIX__VERSION_1_0
       POCL_UNLOCK_OBJ (event);
     }
 
+  pocl_retry_releases ();
   return CL_SUCCESS;
 }
 POsym(clReleaseEvent)

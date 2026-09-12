@@ -252,11 +252,30 @@ POname(clCreateContext)(const cl_context_properties * properties,
 ERROR:
   if (context)
     {
+      for (i = 0; i < context->num_devices; ++i)
+        if (context->devices[i]->ops->pre_release)
+          {
+            /* Keep hidden queues and partial driver state with their parent.
+             */
+            context->num_devices = context->release.device_index;
+            context->release.device_index = 0;
+            for (unsigned d = 0; d < context->num_create_devices; ++d)
+              POname (clRetainDevice) (context->create_devices[d]);
+            POCL_ATOMIC_INC (context_c);
+            ++cl_context_count;
+            POCL_UNLOCK (pocl_context_handling_lock);
+            pocl_release_owned (POCL_RELEASE_CONTEXT, context);
+            pocl_retry_releases ();
+            if (errcode_ret)
+              *errcode_ret = errcode;
+            return NULL;
+          }
       for (i = 0; i < context->num_devices; i++)
         {
           if (context->default_queues && context->default_queues[i])
             {
-              PoCLReleaseCommandQueue (context->default_queues[i]);
+              pocl_release_owned (POCL_RELEASE_QUEUE,
+                                  context->default_queues[i]);
             }
         }
       for (i = 0; i < NUM_OPENCL_IMAGE_TYPES; ++i)

@@ -764,9 +764,9 @@ pocl_exec_command (_cl_command_node *node)
             assert (item);
             pocl_raw_ptr_set_erase (event->context->raw_ptrs, item);
             POCL_UNLOCK_OBJ (event->context);
-            POname (clReleaseContext) (event->context);
+            pocl_release_owned (POCL_RELEASE_CONTEXT, event->context);
             if (shadow_mem)
-              POname (clReleaseMemObject) (shadow_mem);
+              pocl_release_owned (POCL_RELEASE_MEM, shadow_mem);
             dev->ops->svm_free (dev, ptr);
           }
       POCL_UPDATE_EVENT_COMPLETE_MSG (event, "Event SVM Free              ");
@@ -951,7 +951,7 @@ pocl_broadcast (cl_event brc_event)
       POCL_UNLOCK_OBJ (brc_event);
       /* Now that the event is deleted from the notify_list,
        * undo the retain done during pocl_create_event_sync. */
-      POname (clReleaseEvent) (target->event);
+      pocl_release_event_owned (target->event);
       POCL_LOCK_OBJ (brc_event);
       pocl_mem_manager_free_event_node (target);
     }

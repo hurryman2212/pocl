@@ -21,9 +21,10 @@
    THE SOFTWARE.
 */
 
-#include "pocl_cl.h"
-#include "utlist.h"
 #include "assert.h"
+#include "pocl_cl.h"
+#include "pocl_util.h"
+#include "utlist.h"
 
 CL_API_ENTRY cl_int CL_API_CALL
 POname(clFlush)(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
@@ -37,7 +38,8 @@ POname(clFlush)(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 
   if(command_queue->device->ops->flush)
     command_queue->device->ops->flush (command_queue->device, command_queue);
-  
+
+  pocl_retry_releases ();
   return CL_SUCCESS;
 }
 POsym(clFlush)

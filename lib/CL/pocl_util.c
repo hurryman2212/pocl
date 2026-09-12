@@ -74,6 +74,232 @@
 #include "utlist.h"
 #include "utlist_addon.h"
 
+/** One final reference is retained for each deferred internal release. */
+static pocl_lock_t release_lock;
+static pocl_release_state *release_head;
+static pocl_release_state *release_tail;
+static unsigned release_draining;
+static uint64_t release_internal;
+
+uint64_t
+pocl_get_driver_abi_cookie (void)
+{
+  return POCL_DRIVER_ABI_COOKIE;
+}
+
+void
+pocl_release_init (void)
+{
+  POCL_INIT_LOCK (release_lock);
+}
+
+cl_int
+pocl_pre_release (void *object, pocl_release_kind kind, cl_device_id *devices,
+                  unsigned count, pocl_release_state *state, pocl_lock_t *lock)
+{
+  if (state->phase == POCL_RELEASE_STATE_PREPARING
+      || state->phase == POCL_RELEASE_STATE_FINALIZING
+      || state->phase == POCL_RELEASE_STATE_CALLBACKS)
+    return CL_INVALID_OPERATION;
+  if (state->phase == POCL_RELEASE_STATE_READY)
+    {
+      POCL_ATOMIC_STORE (state->phase, POCL_RELEASE_STATE_FINALIZING);
+      return CL_SUCCESS;
+    }
+
+  unsigned i = state->device_index;
+  while (i < count && devices[i]->ops->pre_release == NULL)
+    ++i;
+  if (i == count && state->phase == POCL_RELEASE_STATE_LIVE)
+    return CL_SUCCESS;
+
+  POCL_ATOMIC_STORE (state->phase, POCL_RELEASE_STATE_PREPARING);
+  POCL_UNLOCK (*lock);
+  cl_int result = CL_SUCCESS;
+  if (kind == POCL_RELEASE_CONTEXT)
+    {
+      cl_context context = (cl_context)object;
+      for (unsigned q = 0; context->default_queues && q < count; ++q)
+        if (context->default_queues[q])
+          {
+            result = PoCLReleaseCommandQueue (context->default_queues[q]);
+            if (result != CL_SUCCESS)
+              break;
+            context->default_queues[q] = NULL;
+          }
+    }
+  for (; result == CL_SUCCESS && i < count; ++i)
+    {
+      if (devices[i]->ops->pre_release != NULL)
+        {
+          result = devices[i]->ops->pre_release (devices[i], kind, object);
+          if (result != CL_SUCCESS)
+            break;
+        }
+    }
+  POCL_LOCK (*lock);
+  state->device_index = i;
+  POCL_ATOMIC_STORE (state->phase, result == CL_SUCCESS
+                                       ? POCL_RELEASE_STATE_FINALIZING
+                                       : POCL_RELEASE_STATE_RETRY);
+  return result;
+}
+
+static cl_int
+release_object (pocl_release_kind kind, void *object)
+{
+  switch (kind)
+    {
+    case POCL_RELEASE_CONTEXT:
+      return POname (clReleaseContext) ((cl_context)object);
+    case POCL_RELEASE_QUEUE:
+      return PoCLReleaseCommandQueue ((cl_command_queue)object);
+    case POCL_RELEASE_MEM:
+      return POname (clReleaseMemObject) ((cl_mem)object);
+    case POCL_RELEASE_PROGRAM:
+      return POname (clReleaseProgram) ((cl_program)object);
+    case POCL_RELEASE_KERNEL:
+      return POname (clReleaseKernel) ((cl_kernel)object);
+    }
+  return CL_INVALID_VALUE;
+}
+
+static void
+enqueue_release (pocl_release_state *state, pocl_release_kind kind,
+                 void *object)
+{
+  POCL_LOCK (release_lock);
+  ++state->owned_refs;
+  if (!state->queued)
+    {
+      state->kind = kind;
+      state->object = object;
+      state->next = NULL;
+      state->queued = 1;
+      if (release_tail)
+        release_tail->next = state;
+      else
+        release_head = state;
+      release_tail = state;
+    }
+  POCL_UNLOCK (release_lock);
+}
+
+cl_int
+pocl_release_owned (pocl_release_kind kind, void *object)
+{
+  pocl_release_state *state;
+  cl_device_id *devices;
+  unsigned count;
+  pocl_lock_t *lock;
+  int *refs;
+  switch (kind)
+    {
+    case POCL_RELEASE_CONTEXT:
+      state = &((cl_context)object)->release;
+      lock = &((cl_context)object)->pocl_lock;
+      refs = &((cl_context)object)->pocl_refcount;
+      devices = ((cl_context)object)->devices;
+      count = ((cl_context)object)->num_devices;
+      break;
+    case POCL_RELEASE_QUEUE:
+      state = &((cl_command_queue)object)->release;
+      lock = &((cl_command_queue)object)->pocl_lock;
+      refs = &((cl_command_queue)object)->pocl_refcount;
+      devices = &((cl_command_queue)object)->device;
+      count = 1;
+      break;
+    case POCL_RELEASE_MEM:
+      state = &((cl_mem)object)->release;
+      lock = &((cl_mem)object)->pocl_lock;
+      refs = &((cl_mem)object)->pocl_refcount;
+      devices = ((cl_mem)object)->context->devices;
+      count = ((cl_mem)object)->context->num_devices;
+      break;
+    case POCL_RELEASE_PROGRAM:
+      state = &((cl_program)object)->release;
+      lock = &((cl_program)object)->pocl_lock;
+      refs = &((cl_program)object)->pocl_refcount;
+      devices = ((cl_program)object)->devices;
+      count = ((cl_program)object)->num_devices;
+      break;
+    case POCL_RELEASE_KERNEL:
+      state = &((cl_kernel)object)->release;
+      lock = &((cl_kernel)object)->pocl_lock;
+      refs = &((cl_kernel)object)->pocl_refcount;
+      devices = ((cl_kernel)object)->program->devices;
+      count = ((cl_kernel)object)->program->num_devices;
+      break;
+    default:
+      return CL_INVALID_VALUE;
+    }
+  for (unsigned i = 0; i < count; ++i)
+    if (devices[i]->ops->pre_release)
+      {
+        POCL_LOCK (*lock);
+        if (*refs > 1)
+          {
+            --*refs;
+            POCL_UNLOCK (*lock);
+            return CL_SUCCESS;
+          }
+        POCL_UNLOCK (*lock);
+        enqueue_release (state, kind, object);
+        return CL_SUCCESS;
+      }
+  POCL_ATOMIC_INC (release_internal);
+  cl_int result = release_object (kind, object);
+  POCL_ATOMIC_DEC (release_internal);
+  return result;
+}
+
+cl_int
+pocl_release_event_owned (cl_event event)
+{
+  POCL_ATOMIC_INC (release_internal);
+  cl_int result = POname (clReleaseEvent) (event);
+  POCL_ATOMIC_DEC (release_internal);
+  return result;
+}
+
+void
+pocl_retry_releases (void)
+{
+  POCL_LOCK (release_lock);
+  if (release_draining || POCL_ATOMIC_LOAD (release_internal))
+    {
+      POCL_UNLOCK (release_lock);
+      return;
+    }
+  release_draining = 1;
+  pocl_release_state *batch = release_head;
+  release_head = NULL;
+  release_tail = NULL;
+  while (batch)
+    {
+      pocl_release_state *state = batch;
+      batch = state->next;
+      state->queued = 0;
+      state->next = NULL;
+      unsigned refs = state->owned_refs;
+      state->owned_refs = 0;
+      void *object = state->object;
+      pocl_release_kind kind = (pocl_release_kind)state->kind;
+      POCL_UNLOCK (release_lock);
+      for (unsigned i = 0; i < refs; ++i)
+        if (release_object (kind, object) != CL_SUCCESS)
+          {
+            /* A fallible hook runs only for the final retained reference. */
+            assert (i + 1 == refs);
+            enqueue_release (state, kind, object);
+            break;
+          }
+      POCL_LOCK (release_lock);
+    }
+  release_draining = 0;
+  POCL_UNLOCK (release_lock);
+}
+
 /* #define DEBUG_EVENT_DEPS */
 
 uint32_t
@@ -690,7 +916,7 @@ pocl_create_command_full (_cl_command_node **cmd,
                     = *(uint64_t *)mi->buffer->size_buffer->mem_host_ptr;
                 }
               pocl_release_mem_host_ptr (mi->buffer->size_buffer);
-              POname (clReleaseEvent) (size_events[i]);
+              pocl_release_event_owned (size_events[i]);
               size_events[i] = NULL;
             }
         }
@@ -717,12 +943,12 @@ pocl_create_command_full (_cl_command_node **cmd,
         if (mi->buffer->parent == NULL && mi->buffer->sub_buffers != NULL
             && mi->buffer->last_updater != NULL)
           {
-            POname (clReleaseEvent) (mi->buffer->last_updater);
+            pocl_release_event_owned (mi->buffer->last_updater);
             mi->buffer->last_updater = NULL;
           }
       }
     if (prev_migr_event != NULL)
-      POname (clReleaseEvent) (prev_migr_event);
+      pocl_release_event_owned (prev_migr_event);
     return err;
 }
 
@@ -908,7 +1134,7 @@ pocl_ndrange_node_cleanup (_cl_command_node *node)
       pocl_aligned_free (node->command.run.arguments[i].value);
     }
   POCL_MEM_FREE (node->command.run.arguments);
-  POname(clReleaseKernel)(node->command.run.kernel);
+  pocl_release_owned (POCL_RELEASE_KERNEL, node->command.run.kernel);
 }
 
 
@@ -1321,8 +1547,13 @@ pocl_setup_context (cl_context context)
                 &context->image_formats[j], &context->num_image_formats[j]);
         }
 
+      context->release.device_index = i + 1;
       if (dev->ops->init_context)
-        dev->ops->init_context (dev, context);
+        {
+          err = dev->ops->init_context (dev, context);
+          if (err != CL_SUCCESS)
+            return err;
+        }
 
       cl_command_queue_properties props
         = CL_QUEUE_HIDDEN | CL_QUEUE_PROFILING_ENABLE;
@@ -1330,7 +1561,8 @@ pocl_setup_context (cl_context context)
         props |= CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
       context->default_queues[i]
         = POname (clCreateCommandQueue) (context, dev, props, &err);
-      context->default_queues[i]->user_refcount = 0;
+      if (context->default_queues[i])
+        context->default_queues[i]->user_refcount = 0;
 
       if (err == CL_DEVICE_NOT_AVAILABLE)
         return CL_DEVICE_NOT_AVAILABLE;
@@ -1348,6 +1580,7 @@ pocl_setup_context (cl_context context)
     context->no_devices_support_bda = CL_TRUE;
   assert (alignment > 0);
   context->min_buffer_alignment = alignment;
+  context->release.device_index = 0;
   return CL_SUCCESS;
 }
 
@@ -1781,6 +2014,7 @@ pocl_update_event_finished (cl_int status, const char *func, unsigned line,
   if (node)
   {
     pocl_free_event_node (node);
+    pocl_retry_releases ();
   }
 
   /* NOTE this must be called before we call broadcast, see above */
@@ -1816,7 +2050,8 @@ pocl_update_event_finished (cl_int status, const char *func, unsigned line,
     POCL_UNLOCK_OBJ (cq);
   }
 
-  POname (clReleaseEvent) (event);
+  pocl_release_event_owned (event);
+  pocl_retry_releases ();
 }
 
 void
@@ -2430,7 +2665,8 @@ process_event_cb (pocl_async_callback_item *it)
       free (cb);
       cb = next_cb;
     }
-  POname (clReleaseEvent) (event);
+  pocl_release_event_owned (event);
+  pocl_retry_releases ();
 }
 
 static void
@@ -2446,7 +2682,10 @@ process_mem_cb (pocl_async_callback_item *it)
       free (cb);
       cb = next_cb;
     }
-  POname (clReleaseMemObject) (mem);
+  if (mem->release.phase == POCL_RELEASE_STATE_CALLBACKS)
+    POCL_ATOMIC_STORE (mem->release.phase, POCL_RELEASE_STATE_READY);
+  pocl_release_owned (POCL_RELEASE_MEM, mem);
+  pocl_retry_releases ();
 }
 
 static void
@@ -2462,7 +2701,10 @@ process_context_cb (pocl_async_callback_item *it)
       free (cb);
       cb = next_cb;
     }
-  POname (clReleaseContext) (ctx);
+  if (ctx->release.phase == POCL_RELEASE_STATE_CALLBACKS)
+    POCL_ATOMIC_STORE (ctx->release.phase, POCL_RELEASE_STATE_READY);
+  pocl_release_owned (POCL_RELEASE_CONTEXT, ctx);
+  pocl_retry_releases ();
 }
 
 static void *

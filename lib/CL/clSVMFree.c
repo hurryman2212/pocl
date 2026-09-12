@@ -60,10 +60,10 @@ POname(clSVMFree)(cl_context context,
       return;
     }
 
-  POname (clReleaseMemObject) (item->shadow_cl_mem);
+  pocl_release_owned (POCL_RELEASE_MEM, item->shadow_cl_mem);
   POCL_MEM_FREE (item);
 
-  POname (clReleaseContext) (context);
+  pocl_release_owned (POCL_RELEASE_CONTEXT, context);
 
   context->svm_allocdev->ops->svm_free (context->svm_allocdev, svm_pointer);
 

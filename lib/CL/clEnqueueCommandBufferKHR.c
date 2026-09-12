@@ -143,7 +143,7 @@ POname (clEnqueueCommandBufferKHR) (cl_uint num_queues,
       if (event_p != NULL)
         *event_p = final_ev;
       else
-        POname (clReleaseEvent) (final_ev);
+        pocl_release_event_owned (final_ev);
 
       POname (clRetainCommandBufferKHR) (command_buffer);
       pocl_command_enqueue (used_queues[0], node);
@@ -247,11 +247,11 @@ POname (clEnqueueCommandBufferKHR) (cl_uint num_queues,
       if (event_p != NULL)
         *event_p = final_ev;
       else
-        POname (clReleaseEvent) (final_ev);
+        pocl_release_event_owned (final_ev);
 
       for (unsigned i = 0; i < command_buffer->num_syncpoints; ++i)
         {
-          POname (clReleaseEvent) (syncpoints[i]);
+          pocl_release_event_owned (syncpoints[i]);
         }
       POname (clRetainCommandBufferKHR) (command_buffer);
       pocl_command_enqueue (used_queues[0], node);

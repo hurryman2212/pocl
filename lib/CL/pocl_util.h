@@ -35,6 +35,31 @@
 extern "C" {
 #endif
 
+/** Compare with POCL_DRIVER_ABI_COOKIE before accessing private driver
+ * objects. */
+POCL_EXPORT uint64_t pocl_get_driver_abi_cookie (void);
+
+/** Called with the object lock held, and returns with it held. */
+cl_int pocl_pre_release (void *object, pocl_release_kind kind,
+                         cl_device_id *devices, unsigned count,
+                         pocl_release_state *state, pocl_lock_t *lock);
+
+/** Transfer an internal reference to bounded retirement if final release
+ * fails. */
+POCL_EXPORT cl_int pocl_release_owned (pocl_release_kind kind, void *object);
+
+/** Release an internal event reference without starting callbacks under locks.
+ */
+POCL_EXPORT cl_int pocl_release_event_owned (cl_event event);
+
+/** Retry each currently retired object at most once; recursive drains are
+ * skipped. */
+POCL_EXPORT void pocl_retry_releases (void);
+
+/** Initialize retirement synchronization before the first device is
+ * published. */
+void pocl_release_init (void);
+
 extern size_t buffer_c;
 extern size_t svm_buffer_c;
 extern size_t usm_buffer_c;
@@ -51,7 +76,6 @@ extern size_t uevent_c;
 POCL_EXPORT
 uint32_t pocl_byteswap_uint32_t (uint32_t word, char should_swap);
 float byteswap_float (float word, char should_swap);
-
 
 #ifdef ENABLE_SIGFPE_HANDLER
 void pocl_install_sigfpe_handler ();

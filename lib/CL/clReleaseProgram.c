@@ -43,9 +43,25 @@ POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
   int new_refcount;
   unsigned i, j;
 
-  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_VALID (program)), CL_INVALID_PROGRAM);
+  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_ALIVE (program)), CL_INVALID_PROGRAM);
 
+  uint64_t release_phase = POCL_ATOMIC_LOAD (program->release.phase);
+  if (release_phase == POCL_RELEASE_STATE_PREPARING
+      || release_phase == POCL_RELEASE_STATE_FINALIZING
+      || release_phase == POCL_RELEASE_STATE_CALLBACKS)
+    return CL_INVALID_OPERATION;
   POCL_LOCK_OBJ (program);
+  if (program->pocl_refcount == 1)
+    {
+      cl_int prepare = pocl_pre_release (
+          program, POCL_RELEASE_PROGRAM, program->devices,
+          program->num_devices, &program->release, &program->pocl_lock);
+      if (prepare != CL_SUCCESS)
+        {
+          POCL_UNLOCK_OBJ (program);
+          return prepare;
+        }
+    }
   POCL_RELEASE_OBJECT_UNLOCKED (program, new_refcount);
   POCL_MSG_PRINT_REFCOUNTS (
       "Release Program %" PRId64 " (%p), Refcount: %d, Kernel #: %zu \n",
@@ -136,7 +152,7 @@ POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
       POCL_DESTROY_OBJECT (program);
       POCL_MEM_FREE (program);
 
-      POname(clReleaseContext)(context);
+      pocl_release_owned (POCL_RELEASE_CONTEXT, context);
     }
   else
     {
@@ -144,6 +160,7 @@ POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
       POCL_UNLOCK_OBJ (program);
     }
 
+  pocl_retry_releases ();
   return CL_SUCCESS;
 }
 POsym(clReleaseProgram)

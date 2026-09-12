@@ -54,7 +54,9 @@
 #include "pocl_hash.h"
 #include "pocl_runtime_config.h"
 #include "pocl_threads.h"
+#ifndef POCL_TRACING_H
 #include "pocl_tracing.h"
+#endif
 #ifdef BUILD_ICD
 #  include "pocl_icd.h"
 #endif
@@ -123,7 +125,7 @@
 // 511_941_616_703_887_367
 #define POCL_MAGIC_2 0x071AC830215FD807ULL
 
-#define IS_CL_OBJECT_VALID(__OBJ__)                                           \
+#define IS_CL_OBJECT_ALIVE(__OBJ__)                                           \
   (((__OBJ__) != NULL) && ((__OBJ__)->magic_1 == POCL_MAGIC_1)                \
    && ((__OBJ__)->magic_2 == POCL_MAGIC_2))
 #define CHECK_VALIDITY_MARKERS(__OBJ__)                                       \
@@ -136,11 +138,15 @@
       (__OBJ__)->magic_1 = 0;                                                 \
       (__OBJ__)->magic_2 = 0
 #else
-#define IS_CL_OBJECT_VALID(__OBJ__)   ((__OBJ__) != NULL)
+#define IS_CL_OBJECT_ALIVE(__OBJ__) ((__OBJ__) != NULL)
 #define CHECK_VALIDITY_MARKERS(__OBJ__) do {} while(0)
 #define SET_VALIDITY_MARKERS(__OBJ__) do {} while(0)
 #define UNSET_VALIDITY_MARKERS(__OBJ__) do {} while(0)
 #endif
+
+#define IS_CL_OBJECT_VALID(__OBJ__)                                           \
+  (IS_CL_OBJECT_ALIVE (__OBJ__)                                               \
+   && POCL_ATOMIC_LOAD ((__OBJ__)->release.phase) == POCL_RELEASE_STATE_LIVE)
 
 #define POCL_LOCK_OBJ(__OBJ__)                                                \
   do                                                                          \
@@ -210,7 +216,8 @@ extern pocl_obj_id_t last_object_id;
 #define POCL_INIT_OBJECT_NO_ICD(__OBJ__)                                      \
   do                                                                          \
     {                                                                         \
-      SET_VALIDITY_MARKERS(__OBJ__);                                          \
+      SET_VALIDITY_MARKERS (__OBJ__);                                         \
+      memset (&(__OBJ__)->release, 0, sizeof ((__OBJ__)->release));           \
       (__OBJ__)->pocl_refcount = 1;                                           \
       POCL_INIT_LOCK ((__OBJ__)->pocl_lock);                                  \
       (__OBJ__)->id = POCL_ATOMIC_INC (last_object_id);                       \
@@ -244,6 +251,29 @@ extern pocl_obj_id_t last_object_id;
     }                                                                         \
   while (0)
 
+/** Final-release state is owned by the object and never allocated on failure.
+ */
+enum pocl_release_phase
+{
+  POCL_RELEASE_STATE_LIVE,
+  POCL_RELEASE_STATE_PREPARING,
+  POCL_RELEASE_STATE_RETRY,
+  POCL_RELEASE_STATE_FINALIZING,
+  POCL_RELEASE_STATE_CALLBACKS,
+  POCL_RELEASE_STATE_READY
+};
+
+typedef struct pocl_release_state
+{
+  uint64_t phase;
+  unsigned device_index;
+  unsigned kind;
+  void *object;
+  struct pocl_release_state *next;
+  unsigned queued;
+  unsigned owned_refs;
+} pocl_release_state;
+
 /* Declares the generic pocl object attributes inside a struct. */
 #ifdef ENABLE_EXTRA_VALIDITY_CHECKS
 #define POCL_OBJECT                                                           \
@@ -251,12 +281,14 @@ extern pocl_obj_id_t last_object_id;
   uint64_t id;                                                                \
   pocl_lock_t pocl_lock;                                                      \
   uint64_t magic_2;                                                           \
-  int pocl_refcount
+  int pocl_refcount;                                                          \
+  pocl_release_state release
 #else
 #define POCL_OBJECT                                                           \
   uint64_t id;                                                                \
   pocl_lock_t pocl_lock;                                                      \
-  int pocl_refcount
+  int pocl_refcount;                                                          \
+  pocl_release_state release
 #endif
 
 #ifdef __APPLE__
@@ -439,10 +471,28 @@ struct _pocl_buffer_migration_info
   struct _pocl_buffer_migration_info *prev, *next;
 };
 
+typedef enum pocl_release_kind
+{
+  POCL_RELEASE_CONTEXT,
+  POCL_RELEASE_QUEUE,
+  POCL_RELEASE_MEM,
+  POCL_RELEASE_PROGRAM,
+  POCL_RELEASE_KERNEL
+} pocl_release_kind;
+
 /* The device driver layer operations. The device implementations override
    these hooks for their device-specific functionality. */
 struct pocl_device_ops {
   const char *device_name;
+
+  /** Optional fallible final release, outside object and context locks.
+   * Success commits this device's stage; retries skip successful devices.
+   * Failure leaves the object release-only with its final reference retained.
+   * Existing free callbacks must finish infallible wrapper cleanup afterward.
+   * No object references may be acquired by this callback.
+   */
+  cl_int (*pre_release) (cl_device_id device, pocl_release_kind kind,
+                         void *object);
 
   /****** The API for the out-of-order execution API and asynchronous devices.
 
@@ -2352,5 +2402,18 @@ struct _cl_sampler {
 #define TP_FREE_SAMPLER(context_id, sampler_id)
 
 #endif
+
+/** Private SDK cookie for the pinned source and release-hook patch, not OpenCL
+ * ABI. */
+#define POCL_DRIVER_ABI_COOKIE                                                \
+  (UINT64_C (0xdde68036815a0002)                                              \
+   ^ (sizeof (struct pocl_device_ops) * UINT64_C (0x100000001b3))             \
+   ^ (sizeof (struct _cl_device_id) * UINT64_C (0x100000001b5))               \
+   ^ (sizeof (struct _cl_context) * UINT64_C (0x100000001b7))                 \
+   ^ (sizeof (struct _cl_command_queue) * UINT64_C (0x100000001b9))           \
+   ^ (sizeof (struct _cl_mem) * UINT64_C (0x100000001bb))                     \
+   ^ (sizeof (struct _cl_program) * UINT64_C (0x100000001bd))                 \
+   ^ (sizeof (struct _cl_kernel) * UINT64_C (0x100000001bf))                  \
+   ^ (sizeof (struct _cl_event) * UINT64_C (0x100000001c1)))
 
 #endif /* POCL_CL_H */

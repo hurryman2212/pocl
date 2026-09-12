@@ -115,7 +115,7 @@ ERROR:
     }
   else
     {
-      POname (clReleaseProgram) (program);
+      pocl_release_owned (POCL_RELEASE_PROGRAM, program);
       return NULL;
     }
 }

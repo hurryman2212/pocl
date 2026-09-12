@@ -166,7 +166,7 @@ ERROR:
       DL_DELETE (buffer->mappings, mapping_info);
       --buffer->map_count;
       POCL_UNLOCK_OBJ (buffer);
-      POname (clReleaseMemObject) (buffer);
+      pocl_release_owned (POCL_RELEASE_MEM, buffer);
     }
   POCL_MEM_FREE (mapping_info);
   POCL_MEM_FREE (cmd);

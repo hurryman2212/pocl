@@ -74,7 +74,7 @@ POname (clReleaseCommandBufferKHR) (cl_command_buffer_khr command_buffer)
 
               freed_devs[num_freed++] = q->device;
             }
-          PoCLReleaseCommandQueue (q);
+          pocl_release_owned (POCL_RELEASE_QUEUE, q);
         }
 
       pocl_buffer_migration_info *mi, *tmp;
@@ -104,7 +104,8 @@ POname (clReleaseCommandBufferKHR) (cl_command_buffer_khr command_buffer)
                   else if (cmd->command.run.arguments[i].value != NULL)
                     pocl_aligned_free (cmd->command.run.arguments[i].value);
                 }
-              POname (clReleaseKernel) (cmd->command.run.kernel);
+              pocl_release_owned (POCL_RELEASE_KERNEL,
+                                  cmd->command.run.kernel);
               POCL_MEM_FREE (cmd->command.run.arguments);
               break;
             case CL_COMMAND_COPY_BUFFER:

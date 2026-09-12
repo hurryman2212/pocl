@@ -123,7 +123,7 @@ pocl_mem_free_intel (cl_context context, void *usm_pointer, cl_bool blocking)
               POname (clWaitForEvents) (last_event_count, last_events);
               for (unsigned i = 0; i < last_event_count; ++i)
                 {
-                  POname (clReleaseEvent) (last_events[i]);
+                  pocl_release_event_owned (last_events[i]);
                 }
             }
           free (last_events);
@@ -131,9 +131,9 @@ pocl_mem_free_intel (cl_context context, void *usm_pointer, cl_bool blocking)
         }
     }
 
-  POname (clReleaseMemObject) (item->shadow_cl_mem);
+  pocl_release_owned (POCL_RELEASE_MEM, item->shadow_cl_mem);
   POCL_MEM_FREE (item);
-  POname (clReleaseContext) (context);
+  pocl_release_owned (POCL_RELEASE_CONTEXT, context);
 
   POCL_ATOMIC_DEC (usm_buffer_c);
 

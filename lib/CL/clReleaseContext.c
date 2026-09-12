@@ -48,11 +48,26 @@ extern pocl_lock_t pocl_context_handling_lock;
 CL_API_ENTRY cl_int CL_API_CALL
 POname(clReleaseContext)(cl_context context) CL_API_SUFFIX__VERSION_1_0
 {
-  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_VALID (context)), CL_INVALID_CONTEXT);
+  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_ALIVE (context)), CL_INVALID_CONTEXT);
 
   int new_refcount;
-  POCL_LOCK (pocl_context_handling_lock);
+  uint64_t release_phase = POCL_ATOMIC_LOAD (context->release.phase);
+  if (release_phase == POCL_RELEASE_STATE_PREPARING
+      || release_phase == POCL_RELEASE_STATE_FINALIZING
+      || release_phase == POCL_RELEASE_STATE_CALLBACKS)
+    return CL_INVALID_OPERATION;
   POCL_LOCK_OBJ (context);
+  if (context->pocl_refcount == 1)
+    {
+      cl_int prepare = pocl_pre_release (
+          context, POCL_RELEASE_CONTEXT, context->devices,
+          context->num_devices, &context->release, &context->pocl_lock);
+      if (prepare != CL_SUCCESS)
+        {
+          POCL_UNLOCK_OBJ (context);
+          return prepare;
+        }
+    }
   POCL_RELEASE_OBJECT_UNLOCKED (context, new_refcount);
   POCL_MSG_PRINT_REFCOUNTS ("Release Context %" PRId64 " (%p), Refcount: %d\n",
                             context->id, context, new_refcount);
@@ -61,9 +76,11 @@ POname(clReleaseContext)(cl_context context) CL_API_SUFFIX__VERSION_1_0
     {
       if (context->destructor_callbacks)
         {
+          if (context->release.phase)
+            POCL_ATOMIC_STORE (context->release.phase,
+                               POCL_RELEASE_STATE_CALLBACKS);
           pocl_context_cb_push (context);
           POCL_UNLOCK_OBJ (context);
-          POCL_UNLOCK (pocl_context_handling_lock);
           return CL_SUCCESS;
         }
       POCL_UNLOCK_OBJ (context);
@@ -82,7 +99,8 @@ POname(clReleaseContext)(cl_context context) CL_API_SUFFIX__VERSION_1_0
         {
           cl_device_id dev = context->devices[i];
           if (context->default_queues && context->default_queues[i])
-            PoCLReleaseCommandQueue (context->default_queues[i]);
+            pocl_release_owned (POCL_RELEASE_QUEUE,
+                                context->default_queues[i]);
           if (dev->ops->free_context)
             dev->ops->free_context (dev, context);
         }
@@ -101,6 +119,7 @@ POname(clReleaseContext)(cl_context context) CL_API_SUFFIX__VERSION_1_0
       for (i = 0; i < NUM_OPENCL_IMAGE_TYPES; ++i)
         POCL_MEM_FREE (context->image_formats[i]);
 
+      POCL_LOCK (pocl_context_handling_lock);
 #ifdef ENABLE_LLVM
       pocl_llvm_release_context (context);
 #endif
@@ -108,10 +127,11 @@ POname(clReleaseContext)(cl_context context) CL_API_SUFFIX__VERSION_1_0
       pocl_raw_ptr_set_destroy (context->raw_ptrs);
 
       POCL_DESTROY_OBJECT (context);
-      POCL_MEM_FREE(context);
+      POCL_MEM_FREE (context);
 
       /* see below on why we don't call uninit_devices here anymore */
       --cl_context_count;
+      POCL_UNLOCK (pocl_context_handling_lock);
     }
   else
     {
@@ -119,8 +139,7 @@ POname(clReleaseContext)(cl_context context) CL_API_SUFFIX__VERSION_1_0
       POCL_UNLOCK_OBJ (context);
     }
 
-  POCL_UNLOCK (pocl_context_handling_lock);
-
+  pocl_retry_releases ();
   return CL_SUCCESS;
 }
 POsym(clReleaseContext)
