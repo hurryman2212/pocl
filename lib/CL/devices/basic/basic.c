@@ -492,6 +492,8 @@ pocl_basic_reinit (unsigned j, cl_device_id device, const char *parameters)
   assert (d->printf_buffer != NULL);
 
   POCL_INIT_LOCK (d->cq_lock);
+  d->available = CL_TRUE;
+  device->available = &d->available;
   device->data = d;
   return CL_SUCCESS;
 }

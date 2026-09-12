@@ -82,6 +82,9 @@ int pocl_device_get_env_count(const char *dev_type);
 void pocl_set_devices_dispatch_data (void *disp_data);
 #endif
 
+unsigned pocl_count_auxiliary_contexts (void);
+cl_int pocl_prepare_uninit_devices (void);
+
 /* the environment variable that lists the enabled devices */
 #define POCL_DEVICES_ENV "POCL_DEVICES"
 

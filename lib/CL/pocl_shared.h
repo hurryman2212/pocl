@@ -37,7 +37,8 @@ extern "C" {
 #pragma GCC visibility push(hidden)
 #endif
 
-void pocl_check_uninit_devices ();
+extern int pocl_uninit_in_progress;
+cl_int pocl_check_uninit_devices (void);
 
 cl_int PoCLReleaseCommandQueue (cl_command_queue command_queue);
 cl_int PoCLRetainCommandQueue (cl_command_queue command_queue);

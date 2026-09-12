@@ -142,53 +142,52 @@ POname(clReleaseContext)(cl_context context) CL_API_SUFFIX__VERSION_1_0
   pocl_retry_releases ();
   return CL_SUCCESS;
 }
-POsym(clReleaseContext)
+POsym (clReleaseContext)
 
-void
-pocl_check_uninit_devices ()
+    cl_int pocl_check_uninit_devices (void)
 {
-  int do_uninit = pocl_get_bool_option ("POCL_ENABLE_UNINIT", 0);
-  if (!do_uninit)
-    return;
+  /* Retired queues/programs can own the last otherwise-unreachable context. */
+  pocl_retry_releases ();
+  if (!pocl_get_bool_option ("POCL_ENABLE_UNINIT", 0))
+    return CL_SUCCESS;
 
   POCL_LOCK (pocl_context_handling_lock);
-  if (cl_context_count == 0)
+  if (pocl_uninit_in_progress)
     {
-      POCL_MSG_PRINT_REFCOUNTS (
-          "Zero contexts left, calling pocl_uninit_devices\n");
-      pocl_uninit_devices ();
-#ifdef ENABLE_LLVM
-      UnInitializeLLVM ();
-#endif
+      POCL_UNLOCK (pocl_context_handling_lock);
+      return CL_OUT_OF_RESOURCES;
     }
-  else
+  /* Auxiliary counts never include a context before successful creation or
+     after its release begins, so racing transitions only postpone shutdown. */
+  unsigned auxiliary = pocl_count_auxiliary_contexts ();
+  if (cl_context_count != auxiliary)
     {
-      POCL_MSG_ERR ("Alive contexts remaining, cannot uninit. \n");
-      POCL_MSG_ERR ("Contexts alive: %zu\n", POCL_ATOMIC_LOAD (context_c));
-      if (POCL_ATOMIC_LOAD (queue_c) > 0)
-        POCL_MSG_ERR ("Queues alive: %zu\n", POCL_ATOMIC_LOAD (queue_c));
-      if (POCL_ATOMIC_LOAD (buffer_c) > 0)
-        POCL_MSG_ERR ("Buffers alive: %zu\n", POCL_ATOMIC_LOAD (buffer_c));
-      if (POCL_ATOMIC_LOAD (svm_buffer_c) > 0)
-        POCL_MSG_ERR ("SVM buffers alive: %zu\n",
-                      POCL_ATOMIC_LOAD (svm_buffer_c));
-      if (POCL_ATOMIC_LOAD (usm_buffer_c) > 0)
-        POCL_MSG_ERR ("USM buffers alive: %zu\n",
-                      POCL_ATOMIC_LOAD (usm_buffer_c));
-      if (POCL_ATOMIC_LOAD (image_c) > 0)
-        POCL_MSG_ERR ("Images alive: %zu\n", POCL_ATOMIC_LOAD (image_c));
-      if (POCL_ATOMIC_LOAD (program_c) > 0)
-        POCL_MSG_ERR ("Programs alive: %zu\n", POCL_ATOMIC_LOAD (program_c));
-      if (POCL_ATOMIC_LOAD (kernel_c) > 0)
-        POCL_MSG_ERR ("Kernels alive: %zu\n", POCL_ATOMIC_LOAD (kernel_c));
-      if (POCL_ATOMIC_LOAD (sampler_c) > 0)
-        POCL_MSG_ERR ("Samplers alive: %zu\n", POCL_ATOMIC_LOAD (sampler_c));
-      if (POCL_ATOMIC_LOAD (event_c) > 0)
-        POCL_MSG_ERR ("Command events alive: %zu\n",
-                      POCL_ATOMIC_LOAD (event_c));
-      if (POCL_ATOMIC_LOAD (uevent_c) > 0)
-        POCL_MSG_ERR ("User events alive: %zu\n", POCL_ATOMIC_LOAD (uevent_c));
+      POCL_UNLOCK (pocl_context_handling_lock);
+      return CL_SUCCESS;
     }
-
+  pocl_uninit_in_progress = 1;
   POCL_UNLOCK (pocl_context_handling_lock);
+
+  /* Cleanup may release private CL contexts; no PoCL lock spans callbacks.
+     New context constructors fail at the gate until this attempt ends. */
+  cl_int status = pocl_prepare_uninit_devices ();
+  if (status == CL_SUCCESS)
+    {
+      POCL_LOCK (pocl_context_handling_lock);
+      if (cl_context_count != 0)
+        status = CL_OUT_OF_RESOURCES;
+      POCL_UNLOCK (pocl_context_handling_lock);
+    }
+  if (status == CL_SUCCESS)
+    status = pocl_uninit_devices ();
+#ifdef ENABLE_LLVM
+  if (status == CL_SUCCESS)
+    UnInitializeLLVM ();
+#endif
+  POCL_LOCK (pocl_context_handling_lock);
+  pocl_uninit_in_progress = 0;
+  POCL_UNLOCK (pocl_context_handling_lock);
+  return status == CL_SUCCESS || status == CL_OUT_OF_HOST_MEMORY
+             ? status
+             : CL_OUT_OF_RESOURCES;
 }

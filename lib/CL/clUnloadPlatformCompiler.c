@@ -39,7 +39,6 @@ CL_API_SUFFIX__VERSION_1_2
       return CL_INVALID_PLATFORM;
     }
 #endif
-  pocl_check_uninit_devices ();
-  return CL_SUCCESS;
+  return pocl_check_uninit_devices ();
 }
 POsym(clUnloadPlatformCompiler)

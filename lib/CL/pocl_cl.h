@@ -494,14 +494,16 @@ struct pocl_device_ops {
   cl_int (*pre_release) (cl_device_id device, pocl_release_kind kind,
                          void *object);
 
-  /** Optional admission before dependency edges are installed; may reject enqueue.
-   * The command union is not prepared yet. Failure leaves no accepted driver work,
-   * or free_command must arrange deferred cancellation outside runtime locks.
+  /** Optional admission before dependency edges are installed; may reject
+   * enqueue. The command union is not prepared yet. Failure leaves no accepted
+   * driver work, or free_command must arrange deferred cancellation outside
+   * runtime locks.
    */
   cl_int (*init_command) (_cl_command_node *node, cl_command_queue queue,
                           cl_uint count, const cl_event *explicit_waits);
 
-  /** Optional command-state cleanup; must not invoke user callbacks under locks. */
+  /** Optional command-state cleanup; must not invoke user callbacks under
+   * locks. */
   void (*free_command) (_cl_command_node *node);
 
   /****** The API for the out-of-order execution API and asynchronous devices.
@@ -617,6 +619,13 @@ struct pocl_device_ops {
    * Device type initialization after all devices have been initialized
    */
   cl_int (*post_init) (struct pocl_device_ops *ops);
+
+  /** Private contexts owned by auxiliary execution services, read atomically.
+   */
+  unsigned (*get_auxiliary_context_count) (cl_device_id device);
+
+  /** Close auxiliary contexts before runtime unload, outside PoCL locks. */
+  cl_int (*prepare_uninit) (cl_device_id device);
 
   /** Uninitializes the driver for a particular device.
    *
@@ -2417,7 +2426,7 @@ struct _cl_sampler {
 /** Private SDK cookie for the pinned source and release-hook patch, not OpenCL
  * ABI. */
 #define POCL_DRIVER_ABI_COOKIE                                                \
-  (UINT64_C (0xdde68036815a0003)                                              \
+  (UINT64_C (0xdde68036815a0004)                                              \
    ^ (sizeof (struct pocl_device_ops) * UINT64_C (0x100000001b3))             \
    ^ (sizeof (struct _cl_device_id) * UINT64_C (0x100000001b5))               \
    ^ (sizeof (struct _cl_context) * UINT64_C (0x100000001b7))                 \
@@ -2425,7 +2434,7 @@ struct _cl_sampler {
    ^ (sizeof (struct _cl_mem) * UINT64_C (0x100000001bb))                     \
    ^ (sizeof (struct _cl_program) * UINT64_C (0x100000001bd))                 \
    ^ (sizeof (struct _cl_kernel) * UINT64_C (0x100000001bf))                  \
-   ^ (sizeof (struct _cl_event) * UINT64_C (0x100000001c1)) \
+   ^ (sizeof (struct _cl_event) * UINT64_C (0x100000001c1))                   \
    ^ (sizeof (_cl_command_node) * UINT64_C (0x100000001c3)))
 
 #endif /* POCL_CL_H */

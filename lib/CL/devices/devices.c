@@ -417,6 +417,38 @@ pocl_get_device_type_count(cl_device_type device_type)
   return count;
 }
 
+/* Drivers report private context ownership without taking context/driver
+   locks. Registered device callback tables remain resident through reinit. */
+unsigned
+pocl_count_auxiliary_contexts (void)
+{
+  unsigned total = 0;
+  cl_device_id device;
+  LL_FOREACH_ATOMIC (pocl_devices, device)
+  if (device->ops->get_auxiliary_context_count)
+    {
+      unsigned count = device->ops->get_auxiliary_context_count (device);
+      if (count > (unsigned)-1 - total)
+        return (unsigned)-1;
+      total += count;
+    }
+  return total;
+}
+
+cl_int
+pocl_prepare_uninit_devices (void)
+{
+  cl_device_id device;
+  LL_FOREACH_ATOMIC (pocl_devices, device)
+  if (device->ops->prepare_uninit)
+    {
+      cl_int status = device->ops->prepare_uninit (device);
+      if (status != CL_SUCCESS)
+        return status;
+    }
+  return CL_SUCCESS;
+}
+
 cl_int
 pocl_uninit_devices ()
 {
@@ -432,8 +464,6 @@ pocl_uninit_devices ()
   pocl_async_callback_finish ();
 
   unsigned i, j;
-  cl_device_id device = pocl_devices;
-
   cl_device_id d;
   for (i = 0; i < POCL_NUM_DEVICE_TYPES; ++i)
     {
@@ -442,10 +472,11 @@ pocl_uninit_devices ()
       assert (pocl_device_ops[i].init);
 
       j = 0;
-      LL_FOREACH_ATOMIC (device, device)
+      LL_FOREACH_ATOMIC (pocl_devices, d)
       {
-        d = device;
-        if (*(d->available) == CL_FALSE)
+        if (d->ops != &pocl_device_ops[i])
+          continue;
+        if (*(d->available) == CL_FALSE && !d->ops->prepare_uninit)
           continue;
         if (d->ops->reinit == NULL || d->ops->uninit == NULL)
           continue;
@@ -455,12 +486,10 @@ pocl_uninit_devices ()
             retval = ret;
             goto FINISH;
           }
-#ifdef ENABLE_LOADABLE_DRIVERS
-          if (pocl_device_handles[i] != NULL)
-          pocl_dynlib_close (pocl_device_handles[i]);
-#endif
-          j++;
-        }
+        /* The registry retains callbacks for the next reinit; closing the
+           module here would invalidate every device's operation table. */
+        j++;
+      }
     }
 
 FINISH:
@@ -493,7 +522,6 @@ pocl_reinit_devices ()
   pocl_async_callback_init ();
 
   unsigned i, j;
-  cl_device_id device = pocl_devices;
 
   char env_name[1024];
   char dev_name[MAX_DEV_NAME_LEN] = { 0 };
@@ -501,15 +529,17 @@ pocl_reinit_devices ()
   /* Init infos for each probed devices */
   for (i = 0; i < POCL_NUM_DEVICE_TYPES; ++i)
     {
+      if (pocl_devices_init_ops[i] == NULL)
+        continue;
       pocl_str_toupper (dev_name, pocl_device_ops[i].device_name);
       assert (pocl_device_ops[i].init);
 
       j = 0;
-      LL_FOREACH_ATOMIC (device, device)
+      LL_FOREACH_ATOMIC (pocl_devices, d)
       {
-        d = device;
-        if (*(d->available) == CL_FALSE)
+        if (d->ops != &pocl_device_ops[i])
           continue;
+        /* Availability may point into driver data released by uninit. */
         if (d->ops->reinit == NULL || d->ops->uninit == NULL)
           continue;
         snprintf (env_name, 1024, "POCL_%s%d_PARAMETERS", dev_name, j);
@@ -521,12 +551,12 @@ pocl_reinit_devices ()
           }
 
         j++;
-        }
+      }
     }
 
 FINISH:
 
-  devices_active = 1;
+  devices_active = (retval == CL_SUCCESS);
   return retval;
 }
 
@@ -753,11 +783,25 @@ pocl_init_devices (cl_platform_id platform)
       assert (pocl_devices_init_ops[i] != NULL);
 #endif
       pocl_devices_init_ops[i](&pocl_device_ops[i]);
-      assert(pocl_device_ops[i].device_name != NULL);
+      /* A loadable driver may reject this private ABI before filling its
+         callback table. Do not probe or revisit an empty registration. */
+      if (pocl_device_ops[i].device_name == NULL
+          || pocl_device_ops[i].probe == NULL
+          || pocl_device_ops[i].init == NULL)
+        {
+          pocl_devices_init_ops[i] = NULL;
+#ifdef ENABLE_LOADABLE_DRIVERS
+          if (pocl_device_handles[i] != NULL)
+            {
+              pocl_dynlib_close (pocl_device_handles[i]);
+              pocl_device_handles[i] = NULL;
+            }
+#endif
+          continue;
+        }
 
       /* Probe and add the result to the number of probed devices */
-      assert(pocl_device_ops[i].probe);
-      device_count[i] = pocl_device_ops[i].probe(&pocl_device_ops[i]);
+      device_count[i] = pocl_device_ops[i].probe (&pocl_device_ops[i]);
       pocl_num_devices += device_count[i];
     }
 

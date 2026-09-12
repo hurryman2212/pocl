@@ -28,7 +28,6 @@
 CL_API_ENTRY cl_int CL_API_CALL POname (clUnloadCompiler) (void)
     CL_API_SUFFIX__VERSION_1_1
 {
-  pocl_check_uninit_devices ();
-  return CL_SUCCESS;
+  return pocl_check_uninit_devices ();
 }
 POsym(clUnloadCompiler)

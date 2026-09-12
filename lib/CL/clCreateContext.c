@@ -131,15 +131,17 @@ context_set_properties (cl_context context,
 extern int pocl_offline_compile;
 
 unsigned cl_context_count = 0;
+int pocl_uninit_in_progress = 0;
 pocl_lock_t pocl_context_handling_lock;
 
 CL_API_ENTRY cl_context CL_API_CALL
-POname(clCreateContext)(const cl_context_properties * properties,
-                cl_uint                       num_devices,
-                const cl_device_id *          devices,
-                void (CL_CALLBACK * pfn_notify)(const char *, const void *, size_t, void *),
-                void *                        user_data,
-                cl_int *                      errcode_ret) CL_API_SUFFIX__VERSION_1_0
+POname (clCreateContext) (const cl_context_properties *properties,
+                          cl_uint num_devices, const cl_device_id *devices,
+                          void (CL_CALLBACK *pfn_notify) (const char *,
+                                                          const void *, size_t,
+                                                          void *),
+                          void *user_data,
+                          cl_int *errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   unsigned i = 0;
   cl_int errcode = 0;
@@ -148,6 +150,7 @@ POname(clCreateContext)(const cl_context_properties * properties,
   POname (clGetPlatformIDs) (1, &platform, NULL);
 
   POCL_LOCK (pocl_context_handling_lock);
+  POCL_GOTO_ERROR_COND (pocl_uninit_in_progress, CL_OUT_OF_RESOURCES);
 
 #ifdef ENABLE_LLVM
   InitializeLLVM ();
