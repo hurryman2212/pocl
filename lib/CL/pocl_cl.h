@@ -1222,6 +1222,8 @@ struct _cl_device_id {
   cl_uint global_mem_cacheline_size;
   cl_ulong global_mem_cache_size;
   cl_ulong global_mem_size;
+  /** Reserve physical backing when each public buffer is created. */
+  cl_bool eager_alloc;
   size_t global_var_pref_size;
   size_t global_var_max_size;
   cl_ulong max_constant_buffer_size;

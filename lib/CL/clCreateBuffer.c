@@ -276,6 +276,17 @@ pocl_create_memobject (cl_context context,
       mem->latest_version = 1;
     }
 
+  /* Drivers modeling allocation order may require backing before first use. */
+  for (unsigned d = 0; d < context->num_devices; ++d)
+    {
+      cl_device_id dev = context->devices[d];
+      if (!dev->eager_alloc || mem->device_ptrs[dev->global_mem_id].mem_ptr)
+        continue;
+      errcode = dev->ops->alloc_mem_obj (dev, mem, host_ptr);
+      if (errcode != CL_SUCCESS)
+        goto ERROR;
+    }
+
   goto SUCCESS;
 
 ERROR:
