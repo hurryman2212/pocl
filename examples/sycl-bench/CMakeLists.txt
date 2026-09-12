@@ -82,7 +82,7 @@ add_dependencies(prepare_examples ${TS_NAME})
 
 set(TEST_LAUNCHER_SCRIPT
     ${PYTHON_INTERP} "${CMAKE_CURRENT_SOURCE_DIR}/sycl_bench_runner.py"
-    "--output=${CMAKE_BINARY_DIR}/sycl_bench_result.json" "--")
+    "--output=${pocl_BINARY_DIR}/sycl_bench_result.json" "--")
 
 # benchmark verification is single-threaded & extremely slow with larger problem
 # size

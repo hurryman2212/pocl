@@ -209,7 +209,7 @@ set_tests_properties(
 
 set(TEST_LAUNCHER_SCRIPT
     ${PYTHON_INTERP} "${CMAKE_CURRENT_SOURCE_DIR}/amdsdk_bench_runner.py"
-    "--output=${CMAKE_BINARY_DIR}/amdsdk_bench_result.json")
+    "--output=${pocl_BINARY_DIR}/amdsdk_bench_result.json")
 
 add_test(
   NAME "AMDSDK_Bench_BitonicSort"

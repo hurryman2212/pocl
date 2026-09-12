@@ -84,7 +84,7 @@ ExternalProject_Add(
     "if [ ! -e ${TS_SRCDIR}/mediadata/external/yuv/goal_1280x720.yuv ] $<SEMICOLON> then ${TS_SRCDIR}/scripts/install/install_googletest.sh && ${TS_SRCDIR}/scripts/install/download_mediadata.sh $<SEMICOLON> fi"
   CONFIGURE_COMMAND
     ${CMAKE_COMMAND} -DWITH_L0=OFF
-    -DOpenCL_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/include
+    -DOpenCL_INCLUDE_DIR=${pocl_SOURCE_DIR}/include
     -DOPENCL_ROOT=${OPENCL_LIBDIR} -DCMAKE_BUILD_TYPE=RelWithDebInfo
     "${TS_BASEDIR}/src/${TS_NAME}"
   INSTALL_COMMAND /bin/true)

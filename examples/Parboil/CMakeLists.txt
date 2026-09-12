@@ -31,7 +31,7 @@ set(TS_SRCDIR "${TESTSUITE_SOURCE_BASEDIR}/${TS_NAME}")
 set(PB_DRIVER "${TS_SRCDIR}/pb2.5driver.tgz")
 set(PB_BENCH "${TS_SRCDIR}/pb2.5benchmarks.tgz")
 set(PB_DATASET "${TS_SRCDIR}/pb2.5datasets_standard.tgz")
-set(PB_MAKE "${CMAKE_BINARY_DIR}/Parboil.makefile")
+set(PB_MAKE "${pocl_BINARY_DIR}/Parboil.makefile")
 
 find_package(PythonInterp 2.7 QUIET)
 
@@ -41,7 +41,7 @@ if(PYTHONINTERP_FOUND)
      AND EXISTS "${PB_BENCH}"
      AND EXISTS "${PB_DATASET}")
 
-    file(WRITE "${PB_MAKE}" "OPENCL_PATH=${CMAKE_SOURCE_DIR}\n")
+    file(WRITE "${PB_MAKE}" "OPENCL_PATH=${pocl_SOURCE_DIR}\n")
     # file(APPEND "${PB_MAKE}" "OPENCL_LIB_PATH=/usr/lib\n")
 
     message(STATUS "Enabling testsuite ${TS_NAME}")

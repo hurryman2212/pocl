@@ -33,7 +33,7 @@ if(UNIX AND HAVE_DLFCN_H)
   add_symlink_to_built_opencl_dynlib(test_dlopen)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${pocl_SOURCE_DIR})
 
 set(C_PROGRAMS_TO_BUILD
     test_clFinish
@@ -95,7 +95,7 @@ set(CXX_PROGRAMS_TO_BUILD
     test_dbk_convert
     test_dbk_set_rows)
 
-add_compile_options(${OPENCL_CFLAGS} -I${CMAKE_SOURCE_DIR}/include)
+add_compile_options(${OPENCL_CFLAGS} -I${pocl_SOURCE_DIR}/include)
 
 add_library(image_test_utils STATIC image_test_utils.c image_test_utils.h)
 
@@ -414,163 +414,163 @@ if(ENABLE_REMOTE_CLIENT
     NAME "remote/clGetDeviceInfo"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clGetDeviceInfo")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clGetDeviceInfo")
   add_test(
     NAME "remote/clEnqueueNativeKernel"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clEnqueueNativeKernel")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clEnqueueNativeKernel")
   add_test(
     NAME "remote/clGetEventInfo"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clGetEventInfo")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clGetEventInfo")
   add_test(
     NAME "remote/clCreateProgramWithBinary"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clCreateProgramWithBinary")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clCreateProgramWithBinary")
   add_test(
     NAME "remote/test_event_cycle"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_event_cycle")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_event_cycle")
   add_test(
     NAME "remote/test_link_error"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_link_error")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_link_error")
   add_test(
     NAME "remote/test_read-copy-write-buffer"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_read-copy-write-buffer")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_read-copy-write-buffer")
   add_test(
     NAME "remote/test_fill-buffer"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_fill-buffer")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_fill-buffer")
   add_test(
     NAME "remote/test_buffer-image-copy"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_buffer-image-copy")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_buffer-image-copy")
   add_test(
     NAME "remote/clCreateKernel"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clCreateKernel")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clCreateKernel")
   add_test(
     NAME "remote/clGetKernelArgInfo"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clGetKernelArgInfo")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clGetKernelArgInfo")
   add_test(
     NAME "remote/clGetSupportedImageFormats"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clGetSupportedImageFormats")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clGetSupportedImageFormats")
   add_test(
     NAME "remote/clCreateKernelsInProgram"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clCreateKernelsInProgram")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clCreateKernelsInProgram")
   add_test(
     NAME "remote/clCreateSubDevices"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_clCreateSubDevices")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_clCreateSubDevices")
   add_test(
     NAME "remote/test_compile_n_link"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_compile_n_link")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_compile_n_link")
   add_test(
     NAME "remote/test_event_free"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_event_free")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_event_free")
   add_test(
     NAME "remote/test_event_double_wait"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_event_double_wait")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_event_double_wait")
   add_test(
     NAME "remote/test_enqueue_kernel_from_binary"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_enqueue_kernel_from_binary")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_enqueue_kernel_from_binary")
   add_test(
     NAME "remote/test_user_event"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_user_event")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_user_event")
   add_test(
     NAME "remote/test_buffer_migration"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_multi.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_buffer_migration")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_buffer_migration")
   add_test(
     NAME "remote/test_buffer_ping_pong"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_multi.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_buffer_ping_pong")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_buffer_ping_pong")
   add_test(
     NAME "remote/clSetMemObjectDestructorCallback"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}"
+      "${pocl_BINARY_DIR}"
       "tests/runtime/test_clSetMemObjectDestructorCallback")
   add_test(
     NAME "remote/test_cl_pocl_content_size"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_cl_pocl_content_size")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_cl_pocl_content_size")
   add_test(
     NAME "remote/test_cl_pocl_content_size_migration_host_remote"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_with_local.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_cl_pocl_content_size_migration")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_cl_pocl_content_size_migration")
   add_test(
     NAME "remote/test_cl_pocl_content_size_migration_remote_remote"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_multi.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_cl_pocl_content_size_migration")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_cl_pocl_content_size_migration")
   add_test(
     NAME "remote/test_deviceside_enqueue"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_deviceside_enqueue")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_deviceside_enqueue")
   add_test(
     NAME "remote/test_command_buffer"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_command_buffer")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_command_buffer")
   add_test(
     NAME "remote/test_command_buffer_images"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_command_buffer_images")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_command_buffer_images")
   add_test(
     NAME "remote/test_command_buffer_multi_device"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_multi.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_command_buffer_multi_device")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_command_buffer_multi_device")
   add_test(
     NAME "remote/test_device_address"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_device_address")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_device_address")
   add_test(
     NAME "remote/test_svm"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_multi.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_svm")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_svm")
   add_test(
     NAME "remote/test_queue_creation_with_hints"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_queue_creation_with_hints")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_queue_creation_with_hints")
 
   set_tests_properties(
     "remote/clCreateSubDevices"
@@ -659,7 +659,7 @@ if(ENABLE_REMOTE_DISCOVERY_AVAHI
     NAME "discovery/remote_discovery_mDNS"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_discovery.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_remote_discovery" "mdns")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_remote_discovery" "mdns")
 
   set_tests_properties(
     "discovery/remote_discovery_mDNS"
@@ -688,7 +688,7 @@ if(ENABLE_REMOTE_DISCOVERY_DHT
     NAME "discovery/remote_discovery_dht"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_discovery.sh"
-      "${CMAKE_BINARY_DIR}" "tests/runtime/test_remote_discovery" "dht")
+      "${pocl_BINARY_DIR}" "tests/runtime/test_remote_discovery" "dht")
 
   set_tests_properties(
     "discovery/remote_discovery_dht"

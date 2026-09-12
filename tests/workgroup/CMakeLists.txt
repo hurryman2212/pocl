@@ -25,7 +25,7 @@
 # =============================================================================
 
 add_definitions("-DSRCDIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
-include_directories("${CMAKE_SOURCE_DIR}/lib/CL")
+include_directories("${pocl_SOURCE_DIR}/lib/CL")
 add_compile_options(${OPENCL_CFLAGS})
 
 add_executable("run_kernel" "run_kernel.c")

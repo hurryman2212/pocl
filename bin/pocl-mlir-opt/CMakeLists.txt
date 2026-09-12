@@ -29,9 +29,9 @@ llvm_update_compile_flags(pocl-mlir-opt)
 
 target_include_directories(pocl-mlir-opt SYSTEM PRIVATE ${MLIR_INCLUDE_DIRS})
 target_include_directories(pocl-mlir-opt
-                           PRIVATE "${CMAKE_SOURCE_DIR}/lib/mliropencl/include")
+                           PRIVATE "${pocl_SOURCE_DIR}/lib/mliropencl/include")
 target_include_directories(pocl-mlir-opt
-                           PRIVATE "${CMAKE_BINARY_DIR}/lib/mliropencl/include")
+                           PRIVATE "${pocl_BINARY_DIR}/lib/mliropencl/include")
 
 if(LLVM_PACKAGE_VERSION)
   set(LIBMLIRPASSES "obj.mlirpasses")

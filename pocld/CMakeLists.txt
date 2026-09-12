@@ -107,7 +107,7 @@ list(APPEND P_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 
 list(APPEND P_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR})
 # pocld_config.h
-list(APPEND P_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR})
+list(APPEND P_INCLUDE_DIRECTORIES ${pocl_BINARY_DIR})
 # pocl_debug.h + dependencies
 list(APPEND P_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../lib/CL")
 # spirv_parser.hh pocl_spirv_utils.hh
@@ -151,10 +151,10 @@ endif()
 
 # ##############################################################################
 
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+if(pocl_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   # we're building the server as a separate CMake project
 
-  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/../cmake")
+  set(CMAKE_MODULE_PATH "${pocl_SOURCE_DIR}/../cmake")
 
   set(STANDALONE 1)
 
@@ -217,7 +217,7 @@ endif()
 # pocld_config.h
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pocld_config.h.in.cmake"
-               "${CMAKE_BINARY_DIR}/pocld_config.h" NEWLINE_STYLE UNIX)
+               "${pocl_BINARY_DIR}/pocld_config.h" NEWLINE_STYLE UNIX)
 
 # ##############################################################################
 
@@ -254,7 +254,7 @@ if(P_INCLUDE_DIRECTORIES)
   target_include_directories(pocld PRIVATE ${P_INCLUDE_DIRECTORIES})
 endif()
 
-target_include_directories(pocld PRIVATE ${CMAKE_BINARY_DIR}) # for config.h
+target_include_directories(pocld PRIVATE ${pocl_BINARY_DIR}) # for config.h
 
 set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)

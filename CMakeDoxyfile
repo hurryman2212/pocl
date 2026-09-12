@@ -51,7 +51,7 @@ PROJECT_BRIEF          = "Internal Developer Documentation"
 # pixels and the maximum width should not exceed 200 pixels. Doxygen will copy
 # the logo to the output directory.
 
-PROJECT_LOGO           = @CMAKE_SOURCE_DIR@/doc/doxygen/images/pocl-80x60.png
+PROJECT_LOGO           = @pocl_SOURCE_DIR@/doc/doxygen/images/pocl-80x60.png
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
 # into which the generated documentation will be written. If a relative path is
@@ -864,9 +864,9 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = @CMAKE_SOURCE_DIR@/poclu \
-                         @CMAKE_SOURCE_DIR@/include \
-                         @CMAKE_SOURCE_DIR@/lib \
+INPUT                  = @pocl_SOURCE_DIR@/poclu \
+                         @pocl_SOURCE_DIR@/include \
+                         @pocl_SOURCE_DIR@/lib \
                          @CMAKE_CURRENT_BINARY_DIR@/config.h \
                          @CMAKE_CURRENT_BINARY_DIR@/config2.h
 
@@ -956,9 +956,9 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = @CMAKE_SOURCE_DIR@/include/CL \
-                         @CMAKE_SOURCE_DIR@/include/hpp \
-                         @CMAKE_SOURCE_DIR@/include/OpenCL
+EXCLUDE                = @pocl_SOURCE_DIR@/include/CL \
+                         @pocl_SOURCE_DIR@/include/hpp \
+                         @pocl_SOURCE_DIR@/include/OpenCL
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded

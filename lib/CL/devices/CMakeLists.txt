@@ -223,6 +223,9 @@ if(ENABLE_SIGFPE_HANDLER OR ENABLE_SIGUSR2_HANDLER)
 endif()
 
 add_library("pocl-devices" OBJECT ${POCL_DEVICES_SOURCES})
+if(ENABLE_ACCELDEV_DRIVER)
+  target_compile_definitions(pocl-devices PRIVATE POCL_ACCELDEV_DRIVER=1)
+endif()
 if(HAVE_LIBXSMM) # for includedir flags
   target_link_libraries("pocl-devices" PRIVATE PkgConfig::LIBXSMM)
 endif()

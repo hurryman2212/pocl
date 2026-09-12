@@ -96,6 +96,6 @@ endif()
 # add library of llvm passes (the object form is then linked to libpocl)
 pocl_build_clang_llvm_object(llvmpasses ${LLVMPASSES_SOURCES})
 
-target_include_directories(llvmpasses PRIVATE "${CMAKE_SOURCE_DIR}/lib/CL")
+target_include_directories(llvmpasses PRIVATE "${pocl_SOURCE_DIR}/lib/CL")
 target_include_directories(llvmpasses
-                           PRIVATE "${CMAKE_SOURCE_DIR}/lib/CL/devices")
+                           PRIVATE "${pocl_SOURCE_DIR}/lib/CL/devices")

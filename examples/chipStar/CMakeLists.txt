@@ -113,8 +113,7 @@ endif()
 # set up env variables. Unfortunately this is necessary even just to build
 # chipStar because the catch testsuite's "autodiscovery" feature requires a
 # working chipStar (which requires a working backend)
-set(CMAKE_CALL_ENV "-E" "env"
-                   "OCL_ICD_VENDORS=${CMAKE_BINARY_DIR}/ocl-vendors/")
+set(CMAKE_CALL_ENV "-E" "env" "OCL_ICD_VENDORS=${pocl_BINARY_DIR}/ocl-vendors/")
 list(APPEND CMAKE_CALL_ENV "POCL_BUILDING=1")
 list(APPEND CMAKE_CALL_ENV "POCL_KERNEL_CACHE=0")
 list(APPEND CMAKE_CALL_ENV "CHIP_BE=opencl")

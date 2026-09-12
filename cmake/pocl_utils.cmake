@@ -26,11 +26,10 @@
 # Ceases the configuration if symbolic links can't be created on the system.
 function(pocl_assert_symlinks_works)
   execute_process(
-    COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/test_symlink_target
+    COMMAND ${CMAKE_COMMAND} -E touch ${pocl_BINARY_DIR}/test_symlink_target
     COMMAND
-      ${CMAKE_COMMAND} -E create_symlink
-      ${CMAKE_BINARY_DIR}/test_symlink_target
-      ${CMAKE_BINARY_DIR}/test_symlink_itself RESULTS_VARIABLE ECS COMMAND_ECHO
+      ${CMAKE_COMMAND} -E create_symlink ${pocl_BINARY_DIR}/test_symlink_target
+      ${pocl_BINARY_DIR}/test_symlink_itself RESULTS_VARIABLE ECS COMMAND_ECHO
       STDOUT)
 
   list(GET ECS 0 TOUCH_EC)

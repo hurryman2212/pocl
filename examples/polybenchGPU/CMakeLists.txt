@@ -68,7 +68,7 @@ ExternalProject_Add(
              -DUSE_SMALL_DATASET=OFF
              -DENABLE_VERIFICATION=OFF
              -DENQUEUE_ITERS=${NITERS}
-             "-DOPENCL_INCLUDE_PATH=${CMAKE_SOURCE_DIR}/include/"
+             "-DOPENCL_INCLUDE_PATH=${pocl_SOURCE_DIR}/include/"
              "-DOPENCL_opencl_LIBRARY:STRING=${OPENCL_LIBRARY}"
   INSTALL_COMMAND "")
 
@@ -77,7 +77,7 @@ add_dependencies(prepare_examples ${TS_NAME})
 
 set(TEST_LAUNCHER_SCRIPT
     ${PYTHON_INTERP} "${CMAKE_CURRENT_SOURCE_DIR}/polybench_runner.py"
-    "--output=${CMAKE_BINARY_DIR}/polybench_result.json")
+    "--output=${pocl_BINARY_DIR}/polybench_result.json")
 
 add_test(
   NAME polybenchGPU_2DCONV

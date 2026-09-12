@@ -27,7 +27,7 @@ set_opencl_header_includes()
 
 if(ENABLE_SPIRV)
   # TODO refactor spirv-parser into its own library
-  set(SPVSRC "${CMAKE_SOURCE_DIR}/lib/CL/devices")
+  set(SPVSRC "${pocl_SOURCE_DIR}/lib/CL/devices")
   if(ENABLE_ICD)
     add_executable(
       spirv_fix_atomic_compare_exchange

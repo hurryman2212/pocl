@@ -359,7 +359,7 @@ endforeach()
 if(ENABLE_POCLCC)
   add_test(
     NAME "kernel/test_ptr_compare_build"
-    COMMAND "${CMAKE_BINARY_DIR}/bin/poclcc" -o test_ptr_compare_build.out
+    COMMAND "${pocl_BINARY_DIR}/bin/poclcc" -o test_ptr_compare_build.out
             "${CMAKE_CURRENT_SOURCE_DIR}/test_ptr_compare.cl")
 endif()
 

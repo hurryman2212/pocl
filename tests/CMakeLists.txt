@@ -40,7 +40,7 @@ function(add_cpu_jit_test TEST_NAME TEST_TARGET)
 
   add_test(NAME "${FULL_TEST_NAME}"
            COMMAND "${CMAKE_COMMAND}" "-Dtest_cmd=${RUN_CMD}" "-P"
-                   "${CMAKE_SOURCE_DIR}/cmake/run_test.cmake")
+                   "${pocl_SOURCE_DIR}/cmake/run_test.cmake")
   set_tests_properties(
     "${FULL_TEST_NAME}"
     PROPERTIES ENVIRONMENT

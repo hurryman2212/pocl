@@ -63,10 +63,10 @@ add_test(
   NAME "examples/matrix1_poclbin"
   COMMAND
     ${CMAKE_COMMAND}
-    "-DCMD1=${CMAKE_BINARY_DIR}/bin/poclcc####-o####${CMAKE_BINARY_DIR}/matrix1_poclbin.bin####${CMAKE_CURRENT_SOURCE_DIR}/matrix1.cl"
-    "-DCMD2=${CMAKE_BINARY_DIR}/examples/matrix1/matrix1####256####-b####${CMAKE_BINARY_DIR}/matrix1_poclbin.bin"
-    "-DCMD3=${CMAKE_COMMAND}####-E####remove####-f####${CMAKE_BINARY_DIR}/matrix1_poclbin.bin"
-    -P ${CMAKE_SOURCE_DIR}/cmake/multi_exec_test.cmake)
+    "-DCMD1=${pocl_BINARY_DIR}/bin/poclcc####-o####${pocl_BINARY_DIR}/matrix1_poclbin.bin####${CMAKE_CURRENT_SOURCE_DIR}/matrix1.cl"
+    "-DCMD2=${pocl_BINARY_DIR}/examples/matrix1/matrix1####256####-b####${pocl_BINARY_DIR}/matrix1_poclbin.bin"
+    "-DCMD3=${CMAKE_COMMAND}####-E####remove####-f####${pocl_BINARY_DIR}/matrix1_poclbin.bin"
+    -P ${pocl_SOURCE_DIR}/cmake/multi_exec_test.cmake)
 
 set_tests_properties(
   "examples/matrix1_poclbin"

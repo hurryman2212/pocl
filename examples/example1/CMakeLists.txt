@@ -84,10 +84,10 @@ add_test(
   NAME "examples/example1_poclbin"
   COMMAND
     ${CMAKE_COMMAND}
-    "-DCMD1=${CMAKE_BINARY_DIR}/bin/poclcc####-o####${CMAKE_BINARY_DIR}/example1.bin####${CMAKE_CURRENT_SOURCE_DIR}/example1.cl"
-    "-DCMD2=${CMAKE_BINARY_DIR}/examples/example1/example1####b####${CMAKE_BINARY_DIR}/example1.bin"
-    "-DCMD3=${CMAKE_COMMAND}####-E####remove####-f####${CMAKE_BINARY_DIR}/example1.bin"
-    -P ${CMAKE_SOURCE_DIR}/cmake/multi_exec_test.cmake)
+    "-DCMD1=${pocl_BINARY_DIR}/bin/poclcc####-o####${pocl_BINARY_DIR}/example1.bin####${CMAKE_CURRENT_SOURCE_DIR}/example1.cl"
+    "-DCMD2=${pocl_BINARY_DIR}/examples/example1/example1####b####${pocl_BINARY_DIR}/example1.bin"
+    "-DCMD3=${CMAKE_COMMAND}####-E####remove####-f####${pocl_BINARY_DIR}/example1.bin"
+    -P ${pocl_SOURCE_DIR}/cmake/multi_exec_test.cmake)
 
 # Force disable the WG specialization to test executing from the generic binary
 # only. This is to avoid the online compiler creating a specialized WG function
@@ -113,7 +113,7 @@ if(ENABLE_REMOTE_CLIENT
     NAME "remote/example1"
     COMMAND
       "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-      "${CMAKE_BINARY_DIR}" "examples/example1/example1")
+      "${pocl_BINARY_DIR}" "examples/example1/example1")
   set_tests_properties(
     "remote/example1"
     PROPERTIES COST
@@ -133,7 +133,7 @@ if(ENABLE_REMOTE_CLIENT
       NAME "remote/example1_spirv"
       COMMAND
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/scripts/test_remote_runner_single.sh"
-        "${CMAKE_BINARY_DIR}" "examples/example1/example1" "v")
+        "${pocl_BINARY_DIR}" "examples/example1/example1" "v")
 
     set_tests_properties(
       "remote/example1_spirv"

@@ -36,11 +36,11 @@ set(MLIRPASSES_SOURCES
 
 pocl_build_clang_llvm_object(mlirpasses ${MLIRPASSES_SOURCES})
 
-target_include_directories(mlirpasses PRIVATE "${CMAKE_SOURCE_DIR}/lib/CL")
+target_include_directories(mlirpasses PRIVATE "${pocl_SOURCE_DIR}/lib/CL")
 target_include_directories(mlirpasses
-                           PRIVATE "${CMAKE_SOURCE_DIR}/lib/mliropencl/include")
+                           PRIVATE "${pocl_SOURCE_DIR}/lib/mliropencl/include")
 target_include_directories(mlirpasses
-                           PRIVATE "${CMAKE_BINARY_DIR}/lib/mliropencl/include")
+                           PRIVATE "${pocl_BINARY_DIR}/lib/mliropencl/include")
 
 if(LLVM_PACKAGE_VERSION)
   set(LIBMLIRPASSES "obj.mlirpasses")

@@ -327,9 +327,9 @@ if(ENABLE_LLVM)
         "pocl_mlir_utils.cc" "pocl_mlir_file_util.cc")
     pocl_build_clang_llvm_object(lib_cl_mlir ${MLIR_API_SOURCES})
     target_include_directories(
-      lib_cl_mlir PRIVATE "${CMAKE_SOURCE_DIR}/lib/mliropencl/include")
+      lib_cl_mlir PRIVATE "${pocl_SOURCE_DIR}/lib/mliropencl/include")
     target_include_directories(
-      lib_cl_mlir PRIVATE "${CMAKE_BINARY_DIR}/lib/mliropencl/include")
+      lib_cl_mlir PRIVATE "${pocl_BINARY_DIR}/lib/mliropencl/include")
     # necessary to generate .inc headers before attempting to build MLIR sources
     # pocl_mlir_utils.cc:48: include/pocl/Dialect/Dialect.hh:31:10: fatal error:
     # pocl/Dialect/PoclOpsDialect.h.inc: No such file or directory
@@ -356,7 +356,7 @@ if(ENABLE_LLVM)
   endif()
 
   target_include_directories(lib_cl_llvm
-                             PRIVATE "${CMAKE_SOURCE_DIR}/lib/llvmopencl")
+                             PRIVATE "${pocl_SOURCE_DIR}/lib/llvmopencl")
 
   if(ENABLE_SPIRV AND HAVE_LLVM_SPIRV_LIB)
     target_include_directories(lib_cl_llvm PRIVATE ${LLVM_SPIRV_INCLUDEDIR})
@@ -389,7 +389,7 @@ endif()
 add_library("libpocl_unlinked_objs" OBJECT ${POCL_LIB_SOURCES})
 
 target_include_directories(libpocl_unlinked_objs
-                           PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty/STC/include)
+                           PRIVATE ${pocl_SOURCE_DIR}/thirdparty/STC/include)
 
 if(BUILD_SHARED_LIBS AND MSVC)
   # Inject __declspec(dllexport).
@@ -517,8 +517,13 @@ if(POLICY CMP0207)
   cmake_policy(SET CMP0207 NEW)
 endif()
 
+set(POCL_INSTALL_EXPORT_ARGS)
+if(POCL_INSTALL_EXPORT_SET)
+  list(APPEND POCL_INSTALL_EXPORT_ARGS EXPORT "${POCL_INSTALL_EXPORT_SET}")
+endif()
 install(
-  TARGETS "${POCL_LIBRARY_NAME}" RUNTIME_DEPENDENCY_SET libpocl_deps
+  TARGETS "${POCL_LIBRARY_NAME}" ${POCL_INSTALL_EXPORT_ARGS}
+          RUNTIME_DEPENDENCY_SET libpocl_deps
   ARCHIVE DESTINATION ${POCL_INSTALL_STATIC_LIBDIR_REL} COMPONENT "dev"
   LIBRARY DESTINATION ${POCL_INSTALL_PUBLIC_LIBDIR_REL} COMPONENT "lib"
   RUNTIME DESTINATION ${POCL_INSTALL_PUBLIC_LIBDIR_REL} COMPONENT "lib")

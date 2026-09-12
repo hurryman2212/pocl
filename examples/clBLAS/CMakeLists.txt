@@ -57,8 +57,8 @@ else()
     ${FETCH_SOURCE}
     PATCH_COMMAND
       cd src && pwd && patch -p1 -i
-      ${CMAKE_SOURCE_DIR}/examples/clBLAS/clBLAS_float_error.patch && patch -p1
-      -i ${CMAKE_SOURCE_DIR}/examples/clBLAS/clBLAS_link.patch
+      ${pocl_SOURCE_DIR}/examples/clBLAS/clBLAS_float_error.patch && patch -p1
+      -i ${pocl_SOURCE_DIR}/examples/clBLAS/clBLAS_link.patch
     UPDATE_COMMAND pwd && find ./src/samples/ -type f -name *.c -o -name *.cpp |
                    xargs sed -i "s/CL_DEVICE_TYPE_GPU/CL_DEVICE_TYPE_CPU/g"
     CONFIGURE_COMMAND

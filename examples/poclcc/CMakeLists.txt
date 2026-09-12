@@ -23,7 +23,7 @@
 #
 # =============================================================================
 
-add_test(NAME "poclcc" COMMAND "poclcc" -o "${CMAKE_BINARY_DIR}/poclcc.cl.pocl"
+add_test(NAME "poclcc" COMMAND "poclcc" -o "${pocl_BINARY_DIR}/poclcc.cl.pocl"
                                "${CMAKE_CURRENT_SOURCE_DIR}/poclcc.cl")
 
 set_tests_properties(

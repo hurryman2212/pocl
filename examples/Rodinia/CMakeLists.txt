@@ -51,7 +51,7 @@ elseif(EXISTS "${RODINIA_TGZ}")
     BUILD_COMMAND
       pwd && ${MAKE_PROGRAM} OPENCL
       "CFLAGS=-Wno-unused-result -DCL_USE_DEPRECATED_OPENCL_1_2_APIS -DCL_USE_DEPRECATED_OPENCL_1_1_APIS"
-      "OPENCL_INC=${CMAKE_SOURCE_DIR}/include"
+      "OPENCL_INC=${pocl_SOURCE_DIR}/include"
     INSTALL_COMMAND /bin/true)
 
   set_target_properties(${TS_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE)

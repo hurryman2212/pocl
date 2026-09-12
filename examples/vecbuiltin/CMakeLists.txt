@@ -55,7 +55,7 @@ if(ENABLE_HOST_CPU_VECTORIZE_SVML)
     COMMAND
       "${CMAKE_COMMAND}" "-Dtest_cmd=$<TARGET_FILE:vecbuiltin>"
       "-Dcache_dir=${CMAKE_CURRENT_BINARY_DIR}/jit-svml-cache" "-P"
-      "${CMAKE_SOURCE_DIR}/cmake/test_jit_svml_success.cmake")
+      "${pocl_SOURCE_DIR}/cmake/test_jit_svml_success.cmake")
   set_tests_properties(
     "cpu_jit/vecbuiltin_svml"
     PROPERTIES
@@ -68,7 +68,7 @@ if(ENABLE_HOST_CPU_VECTORIZE_SVML)
 
   add_test(NAME "cpu_jit/vecbuiltin_svml_fault"
            COMMAND "${CMAKE_COMMAND}" "-Dtest_cmd=$<TARGET_FILE:vecbuiltin>"
-                   "-P" "${CMAKE_SOURCE_DIR}/cmake/test_jit_svml_failure.cmake")
+                   "-P" "${pocl_SOURCE_DIR}/cmake/test_jit_svml_failure.cmake")
   set_tests_properties(
     "cpu_jit/vecbuiltin_svml_fault"
     PROPERTIES

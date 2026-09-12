@@ -49,7 +49,7 @@ set_tests_properties(
     LABELS
     "tce;tta;ttasim"
     ENVIRONMENT
-    "POCL_DEVICES=pthread ttasim;POCL_TTASIM0_PARAMETERS=${CMAKE_SOURCE_DIR}/tools/data/test_machine_LE.adf"
+    "POCL_DEVICES=pthread ttasim;POCL_TTASIM0_PARAMETERS=${pocl_SOURCE_DIR}/tools/data/test_machine_LE.adf"
     DEPENDS
     "pocl_version_check")
 
@@ -65,6 +65,6 @@ set_tests_properties(
     LABELS
     "almaif"
     ENVIRONMENT
-    "POCL_DEVICES=pthread almaif;POCL_ALMAIF0_PARAMETERS=0xB,${CMAKE_SOURCE_DIR}/tools/data/test_machine_LE"
+    "POCL_DEVICES=pthread almaif;POCL_ALMAIF0_PARAMETERS=0xB,${pocl_SOURCE_DIR}/tools/data/test_machine_LE"
     DEPENDS
     "pocl_version_check")

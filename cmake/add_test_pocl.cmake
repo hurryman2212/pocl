@@ -70,11 +70,11 @@ function(add_test_pocl)
     unset(RUN_CMD)
 
     set(POCL_TEST_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-    set(POCLBIN_DIR "${CMAKE_BINARY_DIR}/bin")
+    set(POCLBIN_DIR "${pocl_BINARY_DIR}/bin")
     get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
     if(is_multi_config)
       set(POCL_TEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>")
-      set(POCLBIN_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+      set(POCLBIN_DIR "${pocl_BINARY_DIR}/bin/$<CONFIG>")
     endif()
 
     foreach(LOOPVAR ${POCL_TEST_COMMAND})
@@ -114,7 +114,7 @@ function(add_test_pocl)
       list(APPEND POCL_TEST_ARGLIST "-Dsort_output=1")
     endif()
     list(APPEND POCL_TEST_ARGLIST "-P"
-         "${CMAKE_SOURCE_DIR}/cmake/run_test.cmake")
+         "${pocl_SOURCE_DIR}/cmake/run_test.cmake")
 
     if(NOT POCL_TEST_ONLY_FILECHECK)
       add_test(${POCL_TEST_ARGLIST})
@@ -141,7 +141,7 @@ function(add_test_pocl)
 
     if(ENABLE_LLVM_FILECHECKS AND POCL_TEST_LLVM_FILECHECK)
       set(RUN_CMD
-          "${CMAKE_SOURCE_DIR}/tools/scripts/run-and-check-llvm-ir####${TARGET_LLVM_FILECHECK}####${TARGET_LLVM_DIS}####${CMAKE_CURRENT_SOURCE_DIR}/${POCL_TEST_LLVM_FILECHECK}####${RUN_CMD}"
+          "${pocl_SOURCE_DIR}/tools/scripts/run-and-check-llvm-ir####${TARGET_LLVM_FILECHECK}####${TARGET_LLVM_DIS}####${CMAKE_CURRENT_SOURCE_DIR}/${POCL_TEST_LLVM_FILECHECK}####${RUN_CMD}"
       )
 
       set(POCL_TEST_IR_CHECK_NAME "${POCL_VARIANT_TEST_NAME}_llvm-ir-checks")
@@ -153,7 +153,7 @@ function(add_test_pocl)
       list(APPEND POCL_TEST_ARGLIST "COMMAND" "${CMAKE_COMMAND}"
            "-Dtest_cmd=${RUN_CMD}")
       list(APPEND POCL_TEST_ARGLIST "-P"
-           "${CMAKE_SOURCE_DIR}/cmake/run_test.cmake")
+           "${pocl_SOURCE_DIR}/cmake/run_test.cmake")
 
       add_test(${POCL_TEST_ARGLIST})
 

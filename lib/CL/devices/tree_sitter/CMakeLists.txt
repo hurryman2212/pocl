@@ -26,7 +26,7 @@ include(ExternalProject)
 
 find_program(TREE_SITTER_CLI tree-sitter DOC "Tree-sitter CLI" REQUIRED)
 
-set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
+set(EXTERNAL_INSTALL_LOCATION ${pocl_BINARY_DIR}/external)
 ExternalProject_Add(
   tree_sitter
   GIT_REPOSITORY https://github.com/lefp/tree-sitter-opencl.git

@@ -56,7 +56,7 @@ else()
   set(OCL_LIBRARY "OpenCL")
   unset(EXTRA_CFLAGS)
   unset(EXTRA_ARGS)
-  set(POCL_DIR "${CMAKE_BINARY_DIR}/lib/CL")
+  set(POCL_DIR "${pocl_BINARY_DIR}/lib/CL")
   if(ENABLE_ASAN)
     set(EXTRA_CFLAGS "-fsanitize=address")
     set(EXTRA_ARGS "-DCMAKE_EXE_LINKER_FLAGS=-lasan -Wl,-rpath,${POCL_DIR}")
@@ -86,7 +86,7 @@ else()
       -DPIGLIT_USE_WAFFLE=OFF
       -DPIGLIT_BUILD_GLX_TESTS=OFF
       -DPIGLIT_BUILD_VK_TESTS=OFF
-      "-DOPENCL_INCLUDE_PATH=${CMAKE_SOURCE_DIR}/include/"
+      "-DOPENCL_INCLUDE_PATH=${pocl_SOURCE_DIR}/include/"
       "-DOPENCL_opencl_LIBRARY:STRING=${OCL_LIBRARY}"
       ${EXTRA_ARGS}
     INSTALL_COMMAND "")

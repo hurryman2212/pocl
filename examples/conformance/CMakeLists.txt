@@ -122,7 +122,7 @@ ExternalProject_Add(
              -DD3D11_IS_SUPPORTED=0
              -DGL_IS_SUPPORTED=0
              -DGLES_IS_SUPPORTED=0
-             -DCL_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/include
+             -DCL_INCLUDE_DIR=${pocl_SOURCE_DIR}/include
              -DSPIRV_INCLUDE_DIR=/usr
              ${CTS_OPENCL_LIBDIR}
              ${CTS_OPENCL_LIBRARY}
@@ -1002,7 +1002,7 @@ endif()
 
 if(HAVE_SPIRV_TOOLS)
   # add the full testsuite with offline compilation from SPIR-V
-  set(CACHE_DIR "${CMAKE_BINARY_DIR}/CTS_FULL_CACHE")
+  set(CACHE_DIR "${pocl_BINARY_DIR}/CTS_FULL_CACHE")
   file(MAKE_DIRECTORY "${CACHE_DIR}")
 
   if(is_multi_config)
@@ -1012,7 +1012,7 @@ if(HAVE_SPIRV_TOOLS)
       "--compilation-mode"
       "spir-v"
       "--compilation-program"
-      "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh.$<CONFIG>"
+      "${pocl_BINARY_DIR}/cl_offline_compiler.sh.$<CONFIG>"
       "--compilation-cache-path"
       "${CACHE_DIR}")
   else()
@@ -1022,7 +1022,7 @@ if(HAVE_SPIRV_TOOLS)
       "--compilation-mode"
       "spir-v"
       "--compilation-program"
-      "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh"
+      "${pocl_BINARY_DIR}/cl_offline_compiler.sh"
       "--compilation-cache-path"
       "${CACHE_DIR}")
   endif()
@@ -1747,7 +1747,7 @@ endfunction()
 add_cts_micro_tests("conformance_suite_micro_main" "_main")
 
 if(HAVE_SPIRV_TOOLS)
-  set(CACHE_DIR "${CMAKE_BINARY_DIR}/CTS_MICRO_CACHE")
+  set(CACHE_DIR "${pocl_BINARY_DIR}/CTS_MICRO_CACHE")
   file(MAKE_DIRECTORY "${CACHE_DIR}")
 
   # add the micro testsuite with offline compilation from SPIR-V
@@ -1757,7 +1757,7 @@ if(HAVE_SPIRV_TOOLS)
     "--compilation-mode"
     "spir-v"
     "--compilation-program"
-    "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh"
+    "${pocl_BINARY_DIR}/cl_offline_compiler.sh"
     "--compilation-cache-path"
     "${CACHE_DIR}")
 endif()

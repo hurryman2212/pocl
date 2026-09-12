@@ -76,14 +76,14 @@ endmacro()
 # try compile with any compiler (supplied as argument)
 macro(custom_try_compile_any SILENT COMPILER SUFFIX SOURCE RES_VAR)
   string(RANDOM RNDNAME)
-  set(RANDOM_FILENAME "${CMAKE_BINARY_DIR}/compile_test_${RNDNAME}.${SUFFIX}")
+  set(RANDOM_FILENAME "${pocl_BINARY_DIR}/compile_test_${RNDNAME}.${SUFFIX}")
   file(WRITE "${RANDOM_FILENAME}" "${SOURCE}")
 
   math(EXPR LSIZE "${ARGC} - 4")
 
   execute_process(
     COMMAND "${COMPILER}" ${ARGN} "${RANDOM_FILENAME}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    WORKING_DIRECTORY "${pocl_BINARY_DIR}"
     RESULT_VARIABLE RESV
     OUTPUT_VARIABLE OV
     ERROR_VARIABLE EV)
@@ -137,7 +137,7 @@ endmacro()
 # clang++ try-compile macro
 macro(custom_try_compile_clangxx SOURCE1 SOURCE2 RES_VAR)
   string(RANDOM RNDNAME)
-  set(RANDOM_FILENAME "${CMAKE_BINARY_DIR}/compile_test_${RNDNAME}.o")
+  set(RANDOM_FILENAME "${pocl_BINARY_DIR}/compile_test_${RNDNAME}.o")
   custom_try_compile_c_cxx(
     "${HOST_CLANGXX}"
     "cc"
@@ -154,7 +154,7 @@ endmacro()
 # clang++ try-compile macro
 macro(custom_try_compile_clang SOURCE1 SOURCE2 RES_VAR)
   string(RANDOM RNDNAME)
-  set(RANDOM_FILENAME "${CMAKE_BINARY_DIR}/compile_test_${RNDNAME}.o")
+  set(RANDOM_FILENAME "${pocl_BINARY_DIR}/compile_test_${RNDNAME}.o")
   custom_try_compile_c_cxx(
     "${HOST_CLANG}"
     "c"
@@ -171,7 +171,7 @@ endmacro()
 # clang++ try-compile macro
 macro(custom_try_compile_clang_silent SOURCE1 SOURCE2 RES_VAR)
   string(RANDOM RNDNAME)
-  set(RANDOM_FILENAME "${CMAKE_BINARY_DIR}/compile_test_${RNDNAME}.o")
+  set(RANDOM_FILENAME "${pocl_BINARY_DIR}/compile_test_${RNDNAME}.o")
   custom_try_compile_c_cxx_silent(
     "${HOST_CLANG}"
     "c"
@@ -189,7 +189,7 @@ endmacro()
 macro(custom_try_link_clang SOURCE1 SOURCE2 RES_VAR)
   string(RANDOM RNDNAME)
   set(RANDOM_FILENAME
-      "${CMAKE_BINARY_DIR}/compile_test_${RNDNAME}${CMAKE_EXECUTABLE_SUFFIX}")
+      "${pocl_BINARY_DIR}/compile_test_${RNDNAME}${CMAKE_EXECUTABLE_SUFFIX}")
   custom_try_compile_c_cxx_silent(
     "${HOST_CLANG}"
     "c"
@@ -205,7 +205,7 @@ endmacro()
 macro(custom_try_link_clangxx SOURCE1 SOURCE2 RES_VAR)
   string(RANDOM RNDNAME)
   set(RANDOM_FILENAME
-      "${CMAKE_BINARY_DIR}/compile_test_${RNDNAME}${CMAKE_EXECUTABLE_SUFFIX}")
+      "${pocl_BINARY_DIR}/compile_test_${RNDNAME}${CMAKE_EXECUTABLE_SUFFIX}")
   custom_try_compile_c_cxx_silent(
     "${HOST_CLANGXX}"
     "cc"

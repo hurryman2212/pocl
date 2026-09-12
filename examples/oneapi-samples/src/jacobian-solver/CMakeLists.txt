@@ -30,8 +30,8 @@ set_tests_properties(
 # only build-time configurable, not runtime configurable
 add_test(
   NAME oneapi_jacobian_solver_multidevice_sycl-remote
-  COMMAND "${CMAKE_SOURCE_DIR}/tools/scripts/test_remote_runner_single.sh"
-          "${CMAKE_BINARY_DIR}" $<TARGET_FILE:jacobian_solver_multidevice_sycl>
+  COMMAND "${pocl_SOURCE_DIR}/tools/scripts/test_remote_runner_single.sh"
+          "${pocl_BINARY_DIR}" $<TARGET_FILE:jacobian_solver_multidevice_sycl>
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 set_tests_properties(

@@ -45,23 +45,23 @@ set(PRIVATE_HEADERS
 cpack_add_component("dev")
 
 if(ENABLE_HEADER_BUNDLING)
-  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/HeaderBundle")
+  file(MAKE_DIRECTORY "${pocl_BINARY_DIR}/HeaderBundle")
 
   function(create_bundled_header HEADER OUTPUT_VAR)
     string(REPLACE "." "_" HEADER_NAME ${HEADER})
     string(REPLACE "-" "_" HEADER_NAME ${HEADER_NAME})
     add_custom_command(
-      OUTPUT "${CMAKE_BINARY_DIR}/HeaderBundle/${HEADER}"
+      OUTPUT "${pocl_BINARY_DIR}/HeaderBundle/${HEADER}"
       DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}"
       COMMAND
         "${CMAKE_COMMAND}" "-Dname=${HEADER_NAME}"
         "-Dinput=${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}"
-        "-Doutput=${CMAKE_BINARY_DIR}/HeaderBundle/${HEADER}" -P
-        "${CMAKE_SOURCE_DIR}/cmake/generate_c_header_file.cmake"
+        "-Doutput=${pocl_BINARY_DIR}/HeaderBundle/${HEADER}" -P
+        "${pocl_SOURCE_DIR}/cmake/generate_c_header_file.cmake"
       COMMENT "Generating bundling form of header ${HEADER}"
       VERBATIM)
     set(${OUTPUT_VAR}
-        "${CMAKE_BINARY_DIR}/HeaderBundle/${HEADER}"
+        "${pocl_BINARY_DIR}/HeaderBundle/${HEADER}"
         PARENT_SCOPE)
   endfunction()
 

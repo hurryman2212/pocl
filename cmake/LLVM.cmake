@@ -400,9 +400,9 @@ if(NOT LLVM_PACKAGE_VERSION)
   # This tests that we can actually link to the llvm libraries. Mostly to catch
   # issues like #295 - cannot find -ledit
   if(NOT LLVM_LINK_TEST_SUCCESSFUL)
-    set(LLVM_LINK_TEST_FILENAME "${CMAKE_SOURCE_DIR}/cmake/LinkTestLLVM.cc")
+    set(LLVM_LINK_TEST_FILENAME "${pocl_SOURCE_DIR}/cmake/LinkTestLLVM.cc")
     try_compile(
-      LLVM_LINK_TEST ${CMAKE_BINARY_DIR}
+      LLVM_LINK_TEST ${pocl_BINARY_DIR}
       "${LLVM_LINK_TEST_FILENAME}"
       CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${LLVM_INCLUDE_DIRS}"
       CMAKE_FLAGS "-DLINK_DIRECTORIES:STRING=${LLVM_LIBDIR}"
@@ -428,7 +428,7 @@ if(NOT LLVM_PACKAGE_VERSION)
 
   if(NOT CLANG_LINK_TEST_SUCCESSFUL)
     message(STATUS "Running Clang link test")
-    set(CLANG_LINK_TEST_FILENAME "${CMAKE_SOURCE_DIR}/cmake/LinkTestClang.cc")
+    set(CLANG_LINK_TEST_FILENAME "${pocl_SOURCE_DIR}/cmake/LinkTestClang.cc")
 
     set(CXX_COMPAT_FLAGS "")
     if(MSVC)
@@ -441,7 +441,7 @@ if(NOT LLVM_PACKAGE_VERSION)
     endif()
 
     try_compile(
-      CLANG_LINK_TEST ${CMAKE_BINARY_DIR}
+      CLANG_LINK_TEST ${pocl_BINARY_DIR}
       "${CLANG_LINK_TEST_FILENAME}"
       CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${LLVM_INCLUDE_DIRS}"
       CMAKE_FLAGS "-DLINK_DIRECTORIES:STRING=${CLT_LINK_DIRS}"

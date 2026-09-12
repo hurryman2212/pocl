@@ -42,7 +42,7 @@ if(WIN32 AND NOT MINGW)
   #
   # Check if the found library can be used to linking
   #
-  set(_TEST_SOURCE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/linktest.c")
+  set(_TEST_SOURCE "${pocl_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/linktest.c")
   file(
     WRITE "${_TEST_SOURCE}"
     "
@@ -60,7 +60,7 @@ if(WIN32 AND NOT MINGW)
     ")
 
   try_compile(
-    _LINK_SUCCESS ${CMAKE_BINARY_DIR}
+    _LINK_SUCCESS ${pocl_BINARY_DIR}
     "${_TEST_SOURCE}"
     CMAKE_FLAGS "-DINCLUDE_DIRECTORIES:STRING=${Hwloc_INCLUDE_DIR}"
     CMAKE_FLAGS "-DLINK_LIBRARIES:STRING=${Hwloc_LIBRARY}")

@@ -108,7 +108,7 @@ else()
 endif()
 
 add_definitions("-DSRCDIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
-include_directories("${CMAKE_SOURCE_DIR}/lib/CL")
+include_directories("${pocl_SOURCE_DIR}/lib/CL")
 
 foreach(PROG ${PROGRAMS_TO_BUILD})
   add_executable("${PROG}" "${PROG}.cpp")

@@ -33,7 +33,7 @@ else()
 endif()
 
 add_definitions("-DSRCDIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
-include_directories("${CMAKE_SOURCE_DIR}/lib/CL" ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories("${pocl_SOURCE_DIR}/lib/CL" ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(CMAKE_CXX_STANDARD 14)
 foreach(PROG ${PROGRAMS_TO_BUILD})
@@ -70,28 +70,28 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bitstreams)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/firmware_imgs)
 
-configure_file(${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/axim_sep.adf
+configure_file(${pocl_SOURCE_DIR}/tools/data/tta_test_machines/axim_sep.adf
                ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 configure_file(
-  ${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/axim_fused_global_private.adf
+  ${pocl_SOURCE_DIR}/tools/data/tta_test_machines/axim_fused_global_private.adf
   ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 configure_file(
-  ${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/axim_fused_global_cq.adf
+  ${pocl_SOURCE_DIR}/tools/data/tta_test_machines/axim_fused_global_cq.adf
   ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 configure_file(
-  ${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/axim_fused_global_cq_private.adf
+  ${pocl_SOURCE_DIR}/tools/data/tta_test_machines/axim_fused_global_cq_private.adf
   ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 
-configure_file(${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/relative_sep.adf
+configure_file(${pocl_SOURCE_DIR}/tools/data/tta_test_machines/relative_sep.adf
                ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 configure_file(
-  ${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/relative_fused_global_private.adf
+  ${pocl_SOURCE_DIR}/tools/data/tta_test_machines/relative_fused_global_private.adf
   ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 configure_file(
-  ${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/relative_fused_global_cq.adf
+  ${pocl_SOURCE_DIR}/tools/data/tta_test_machines/relative_fused_global_cq.adf
   ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 configure_file(
-  ${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/relative_fused_global_cq_private.adf
+  ${pocl_SOURCE_DIR}/tools/data/tta_test_machines/relative_fused_global_cq_private.adf
   ${CMAKE_CURRENT_BINARY_DIR}/firmwares)
 
 configure_file(firmware.c ${CMAKE_CURRENT_BINARY_DIR})
@@ -110,7 +110,7 @@ function(
   tta_device_hash)
 
   if(ENABLE_TCE)
-    set(ADF ${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/${core_name}.adf)
+    set(ADF ${pocl_SOURCE_DIR}/tools/data/tta_test_machines/${core_name}.adf)
     set(TPEF ${CMAKE_CURRENT_BINARY_DIR}/firmwares/${core_name}.tpef)
 
     message("ADF=${ADF}")
@@ -177,24 +177,23 @@ function(
 
     add_custom_command(
       OUTPUT ${core_name}_example0.poclbin
-      DEPENDS ${CMAKE_SOURCE_DIR}/examples/example0/example0.cl poclcc
+      DEPENDS ${pocl_SOURCE_DIR}/examples/example0/example0.cl poclcc
               ${POCL_LIBRARY_NAME} pocl-devices-almaif
       COMMAND
-        POCL_BUILDING=1 OCL_ICD_VENDORS=${CMAKE_BINARY_DIR}/ocl-vendors/
+        POCL_BUILDING=1 OCL_ICD_VENDORS=${pocl_BINARY_DIR}/ocl-vendors/
         POCL_DEVICES=almaif
-        POCL_ALMAIF0_PARAMETERS=0xB,${CMAKE_SOURCE_DIR}/tools/data/tta_test_machines/${core_name},65535
-        POCL_DEBUG=almaif ${CMAKE_BINARY_DIR}/bin/poclcc -o
+        POCL_ALMAIF0_PARAMETERS=0xB,${pocl_SOURCE_DIR}/tools/data/tta_test_machines/${core_name},65535
+        POCL_DEBUG=almaif ${pocl_BINARY_DIR}/bin/poclcc -o
         ${core_name}_example0.poclbin
-        ${CMAKE_SOURCE_DIR}/examples/example0/example0.cl 2>&1 | grep
+        ${pocl_SOURCE_DIR}/examples/example0/example0.cl 2>&1 | grep
         "TCE DEVICE HASH" | cut -d "=" -f 2 | cut -d "[" -f 1)
 
     add_custom_target(${core_name}_poclbin ALL
                       DEPENDS ${core_name}_example0.poclbin)
     add_test(
       NAME "examples/example0/ttasim_poclbin_${core_name}"
-      COMMAND "${CMAKE_BINARY_DIR}/examples/example0/example0" "b"
-              "${CMAKE_BINARY_DIR}/examples/accel/${core_name}_example0.poclbin"
-    )
+      COMMAND "${pocl_BINARY_DIR}/examples/example0/example0" "b"
+              "${pocl_BINARY_DIR}/examples/accel/${core_name}_example0.poclbin")
 
     add_test_pocl(
       NAME
