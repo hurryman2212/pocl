@@ -131,7 +131,9 @@ POname(clGetProgramInfo)(cl_program program,
       if (source == NULL)
         source = "";
 
-      POCL_RETURN_GETINFO_STR(source);
+      size_t source_size
+          = program->source_size ? program->source_size : strlen (source);
+      POCL_RETURN_GETINFO_SIZE (source_size + 1, source);
     }
 
   case CL_PROGRAM_BINARY_SIZES:

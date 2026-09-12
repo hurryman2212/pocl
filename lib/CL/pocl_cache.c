@@ -353,8 +353,9 @@ pocl_cache_tempname (char *path, const char *suffix, int *fd)
 int
 pocl_cache_write_program_source (char *program_cl_path, cl_program program)
 {
-  return pocl_write_tempfile (program_cl_path, tempfile_pattern, ".cl",
-                              program->source, strlen (program->source));
+  return pocl_write_tempfile (
+      program_cl_path, tempfile_pattern, ".cl", program->source,
+      program->source_size ? program->source_size : strlen (program->source));
 }
 
 int

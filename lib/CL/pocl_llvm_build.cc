@@ -322,7 +322,9 @@ int pocl_llvm_build_program(cl_program program,
 
     for (n = 0; n < num_input_headers; n++) {
       char *input_header = input_headers[n]->source;
-      size_t input_header_size = strlen(input_header);
+      size_t input_header_size = input_headers[n]->source_size
+                                     ? input_headers[n]->source_size
+                                     : strlen(input_header);
       const char *header_name = header_include_names[n];
       std::string header(header_name);
       /* TODO this path stuff should be in utils */
@@ -614,9 +616,10 @@ int pocl_llvm_build_program(cl_program program,
           ArrayRef<const char *>(itemcstrs.data(),
                                  itemcstrs.data() + itemcstrs.size()),
           *diags)) {
-    pocl_cache_create_program_cachedir(program, device_i, program->source,
-                                       strlen(program->source),
-                                       program_bc_path);
+    pocl_cache_create_program_cachedir(
+        program, device_i, program->source,
+        program->source_size ? program->source_size : strlen(program->source),
+        program_bc_path);
     get_build_log(program, device_i, ss_build_log, diagsBuffer,
                   CI.hasSourceManager() ? &CI.getSourceManager() : nullptr);
     return CL_INVALID_BUILD_OPTIONS;
@@ -755,9 +758,10 @@ int pocl_llvm_build_program(cl_program program,
   }
 
   if (PreprocessedOut == nullptr) {
-    pocl_cache_create_program_cachedir(program, device_i, program->source,
-                                       strlen(program->source),
-                                       program_bc_path);
+    pocl_cache_create_program_cachedir(
+        program, device_i, program->source,
+        program->source_size ? program->source_size : strlen(program->source),
+        program_bc_path);
     get_build_log(program, device_i, ss_build_log, diagsBuffer,
                   CI.hasSourceManager() ? &CI.getSourceManager() : nullptr);
     return CL_BUILD_PROGRAM_FAILURE;

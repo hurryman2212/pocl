@@ -590,6 +590,8 @@ struct _cl_command_node
   /* back pointer to the command buffer, when this command is recorded
    * in a cl_khr_command_buffer. NULL for other (non-buffered) commands */
   cl_command_buffer_khr cmd_buffer;
+  /** Optional driver admission state, never copied into recorded commands. */
+  void *driver_data;
 };
 
 /**

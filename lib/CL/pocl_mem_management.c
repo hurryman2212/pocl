@@ -124,6 +124,9 @@ _cl_command_node* pocl_mem_manager_new_command ()
 
 void pocl_mem_manager_free_command (_cl_command_node *cmd_ptr)
 {
+  if (cmd_ptr->driver_data && cmd_ptr->device
+      && cmd_ptr->device->ops->free_command)
+    cmd_ptr->device->ops->free_command (cmd_ptr);
   if (cmd && cmd->buffered)
     {
       /* TODO: recycle these somehow? */
