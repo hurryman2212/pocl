@@ -155,6 +155,9 @@ typedef void (*init_device_ops)(struct pocl_device_ops*);
 
 /* All init function for device operations available to pocl */
 static init_device_ops pocl_devices_init_ops[] = {
+#if defined(ENABLE_LOADABLE_DRIVERS) && defined(POCL_ACCELDEV_DRIVER)
+  INIT_DEV (acceldev),
+#endif
 #ifdef BUILD_BASIC
   INIT_DEV (basic),
 #endif
@@ -193,6 +196,9 @@ static init_device_ops pocl_devices_init_ops[] = {
 #define POCL_NUM_DEVICE_TYPES (sizeof(pocl_devices_init_ops) / sizeof((pocl_devices_init_ops)[0]))
 
 char pocl_device_types[POCL_NUM_DEVICE_TYPES][33] = {
+#if defined(ENABLE_LOADABLE_DRIVERS) && defined(POCL_ACCELDEV_DRIVER)
+  "acceldev",
+#endif
 #ifdef BUILD_BASIC
   "basic",
 #endif
