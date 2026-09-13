@@ -511,7 +511,13 @@ clear_program_device (cl_program program, unsigned index)
       program->pocl_binary_sizes[index] = 0;
     }
   program->global_var_total_size[index] = 0;
-  memset (program->build_hash[index], 0, sizeof (SHA1_digest_t));
+  /* Retained native binaries already identify their cached program. Source/IL
+     rebuilds discard those binaries above and compute a new hash. */
+  if (program->pocl_binaries[index])
+    pocl_binary_set_program_buildhash (program, index,
+                                       program->pocl_binaries[index]);
+  else
+    memset (program->build_hash[index], 0, sizeof (SHA1_digest_t));
   return CL_SUCCESS;
 }
 
