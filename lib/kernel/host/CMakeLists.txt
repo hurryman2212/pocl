@@ -395,26 +395,32 @@ include("bitcode_rules")
 
 set(SLEEF_CL_KERNEL_DEPEND_HEADERS "")
 foreach(HEADER helperadvsimd.h   helperavx2.h     helperavx.h     helperpurec.h  helpersse2.h    misc.h helperavx2_128.h  helperavx512f.h  helperneon32.h  helpers.h      helpervecext.h)
-  list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/arch/${HEADER}")
+  list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS
+       "${pocl_SOURCE_DIR}/lib/kernel/sleef/arch/${HEADER}")
 endforeach()
-list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include/sleef_cl.h")
+list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS
+     "${pocl_SOURCE_DIR}/lib/kernel/sleef/include/sleef_cl.h")
 
 set(SLEEF_C_KERNEL_DEPEND_HEADERS ${SLEEF_CL_KERNEL_DEPEND_HEADERS})
 
 # only CL files depend on these
 foreach(SOURCE sleef_builtin.c  sleef_glue_auto.c  sleef_glue.cl)
-  list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/libm/${SOURCE}")
+  list(APPEND SLEEF_CL_KERNEL_DEPEND_HEADERS
+       "${pocl_SOURCE_DIR}/lib/kernel/sleef/libm/${SOURCE}")
 endforeach()
 
 # only C files depend on these
 foreach(SOURCE dd.h df.h rename.h rename_vec128.h rename_vec256.h rename_vec512.h )
-  list(APPEND SLEEF_C_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/libm/${SOURCE}")
+  list(APPEND SLEEF_C_KERNEL_DEPEND_HEADERS
+       "${pocl_SOURCE_DIR}/lib/kernel/sleef/libm/${SOURCE}")
 endforeach()
-list(APPEND SLEEF_C_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include/sleef.h")
+list(APPEND SLEEF_C_KERNEL_DEPEND_HEADERS
+     "${pocl_SOURCE_DIR}/lib/kernel/sleef/include/sleef.h")
 
 set(LIBCLC_KERNEL_DEPEND_HEADERS "")
 foreach(HEADER ep_log.h misc.h singlevec.h ocml_helpers.h sincos_helpers_fp32.h sincos_helpers_fp64.h vtables.h vtables_macros.h)
-  list(APPEND LIBCLC_KERNEL_DEPEND_HEADERS "${CMAKE_SOURCE_DIR}/lib/kernel/libclc/${HEADER}")
+  list(APPEND LIBCLC_KERNEL_DEPEND_HEADERS
+       "${pocl_SOURCE_DIR}/lib/kernel/libclc/${HEADER}")
 endforeach()
 
 #=============================================================================
@@ -537,7 +543,8 @@ function(compile_sleef VARIANT SLEEF_CONFIG SLEEF_CONFIG_NEW SLEEF_BC)
 
   unset(BC_FILE_LIST)
 
-  set(EXTRA_FLAGS "-DDORENAME;-DPURE_C;-I${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include")
+  set(EXTRA_FLAGS
+      "-DDORENAME;-DPURE_C;-I${pocl_SOURCE_DIR}/lib/kernel/sleef/include")
 
 # disabled - this code uses libm
 #    compile_sleef_c_to_bc("c" "sleef/libm/sleef_builtin.c"
@@ -553,8 +560,8 @@ function(compile_sleef VARIANT SLEEF_CONFIG SLEEF_CONFIG_NEW SLEEF_BC)
   compile_sleef_c_to_bc("c" "sleef/libm/sleef_glue_auto.c"
                         "${VARIANT}" BC_FILE_LIST "-include" "${SLEEF_CONFIG}")
 
-  file(READ "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/test.c" TEST_SRC)
-  file(READ "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/fma_test.c" FMA_TEST_SRC)
+  file(READ "${pocl_SOURCE_DIR}/lib/kernel/sleef/test.c" TEST_SRC)
+  file(READ "${pocl_SOURCE_DIR}/lib/kernel/sleef/fma_test.c" FMA_TEST_SRC)
 
   set(STR "#define SLEEF_ENABLED\n")
   file(APPEND "${SLEEF_CONFIG_NEW}" "${STR}")
@@ -710,7 +717,7 @@ set(LLC_FLAGS ${HOST_LLC_FLAGS} ${LLC_CPUFLAGS})
 if(ENABLE_SLEEF)
 
   # write SLEEF config for this CPU
-  set(SLEEF_CONFIG "${CMAKE_BINARY_DIR}/sleef_config_temp_${VARIANT}.h")
+  set(SLEEF_CONFIG "${pocl_BINARY_DIR}/sleef_config_temp_${VARIANT}.h")
   set(SLEEF_CONFIG_NEW "${SLEEF_CONFIG}.new")
   set(STR "/* SLEEF library configuration for ${VARIANT} CPU */ \n")
   file(WRITE "${SLEEF_CONFIG_NEW}" "${STR}")

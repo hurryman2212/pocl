@@ -27,7 +27,8 @@ separate_arguments(HOST_CLANG_FLAGS)
 separate_arguments(HOST_LLC_FLAGS)
 
 add_definitions(-DCL_TARGET_OPENCL_VERSION=${OPENCL_HEADER_VERSION} -DCL_HPP_TARGET_OPENCL_VERSION=${OPENCL_HEADER_VERSION})
-include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/include/hpp")
+include_directories("${pocl_SOURCE_DIR}/include"
+                    "${pocl_SOURCE_DIR}/include/hpp")
 
 cpack_add_component("lib")
 

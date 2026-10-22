@@ -18,7 +18,7 @@ if(NOT DEFINED LLC_TRIPLE)
     message(FATAL_ERROR "LLC_TRIPLE must be provided when cross-compiling!")
   endif()
   message(STATUS "Find out LLC target triple (for host ${LLVM_HOST_TARGET})")
-  set(_EMPTY_C_FILE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/tripletfind.c")
+  set(_EMPTY_C_FILE "${pocl_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/tripletfind.c")
   file(WRITE "${_EMPTY_C_FILE}" "")
 
   execute_process(COMMAND ${HOST_CLANG} "--target=${LLVM_HOST_TARGET}" -x c ${_EMPTY_C_FILE} -S -emit-llvm -o - RESULT_VARIABLE RES_VAR OUTPUT_VARIABLE OUTPUT_VAR)

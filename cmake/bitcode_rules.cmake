@@ -37,19 +37,19 @@ function(compile_c_to_bc FILENAME SUBDIR BC_FILE_LIST)
     if(IS_ABSOLUTE "${FILENAME}")
       set(FULL_F_PATH "${FILENAME}")
     else()
-      set(FULL_F_PATH "${CMAKE_SOURCE_DIR}/lib/kernel/${FILENAME}")
+      set(FULL_F_PATH "${pocl_SOURCE_DIR}/lib/kernel/${FILENAME}")
     endif()
 
-    add_custom_command( OUTPUT "${BC_FILE}"
-        DEPENDS "${FULL_F_PATH}"
-        "${CMAKE_SOURCE_DIR}/include/pocl_types.h"
-        "${CMAKE_SOURCE_DIR}/include/_kernel_c.h"
-        COMMAND "${HOST_CLANG}" ${CLANG_FLAGS} ${DEVICE_CL_FLAGS}
-        ${KERNEL_C_FLAGS} "-O0" "-o" "${BC_FILE}" "-c" "${FULL_F_PATH}"
-        "-I${CMAKE_SOURCE_DIR}/include"
-        "-include" "${CMAKE_SOURCE_DIR}/include/_kernel_c.h"
-        COMMENT "Building C to LLVM bitcode ${BC_FILE}"
-        VERBATIM)
+    add_custom_command(
+      OUTPUT "${BC_FILE}"
+      DEPENDS "${FULL_F_PATH}" "${pocl_SOURCE_DIR}/include/pocl_types.h"
+              "${pocl_SOURCE_DIR}/include/_kernel_c.h"
+      COMMAND
+        "${HOST_CLANG}" ${CLANG_FLAGS} ${DEVICE_CL_FLAGS} ${KERNEL_C_FLAGS} "-O0"
+        "-o" "${BC_FILE}" "-c" "${FULL_F_PATH}" "-I${pocl_SOURCE_DIR}/include"
+        "-include" "${pocl_SOURCE_DIR}/include/_kernel_c.h"
+      COMMENT "Building C to LLVM bitcode ${BC_FILE}"
+      VERBATIM)
 endfunction()
 
 function(compile_cc_to_bc FILENAME SUBDIR BC_FILE_LIST)
@@ -59,7 +59,7 @@ function(compile_cc_to_bc FILENAME SUBDIR BC_FILE_LIST)
     if(IS_ABSOLUTE "${FILENAME}")
       set(FULL_F_PATH "${FILENAME}")
     else()
-      set(FULL_F_PATH "${CMAKE_SOURCE_DIR}/lib/kernel/${FILENAME}")
+      set(FULL_F_PATH "${pocl_SOURCE_DIR}/lib/kernel/${FILENAME}")
     endif()
 
     add_custom_command(OUTPUT "${BC_FILE}"
@@ -78,43 +78,45 @@ function(compile_cl_to_bc FILENAME SUBDIR BC_FILE_LIST EXTRA_CONFIG)
     if(IS_ABSOLUTE "${FILENAME}")
       set(FULL_F_PATH "${FILENAME}")
     else()
-      set(FULL_F_PATH "${CMAKE_SOURCE_DIR}/lib/kernel/${FILENAME}")
+      set(FULL_F_PATH "${pocl_SOURCE_DIR}/lib/kernel/${FILENAME}")
     endif()
 
     set(DEPENDLIST
-          "${CMAKE_SOURCE_DIR}/include/_kernel.h"
-          "${CMAKE_SOURCE_DIR}/include/_kernel_c.h"
-          "${CMAKE_SOURCE_DIR}/include/pocl_types.h")
-    set(INCLUDELIST
-        "-include" "${CMAKE_SOURCE_DIR}/include/_kernel.h"
-        "-include" "${CMAKE_SOURCE_DIR}/include/_enable_all_exts.h")
+        "${pocl_SOURCE_DIR}/include/_kernel.h"
+        "${pocl_SOURCE_DIR}/include/_kernel_c.h"
+        "${pocl_SOURCE_DIR}/include/pocl_types.h")
+    set(INCLUDELIST "-include" "${pocl_SOURCE_DIR}/include/_kernel.h" "-include"
+                    "${pocl_SOURCE_DIR}/include/_enable_all_exts.h")
 
     if(FILENAME MATCHES "sleef")
       list(APPEND DEPENDLIST
           "${EXTRA_CONFIG}"
           )
       list(APPEND DEPENDLIST ${SLEEF_CL_KERNEL_DEPEND_HEADERS})
-      list(APPEND INCLUDELIST
+      list(
+        APPEND
+        INCLUDELIST
         "-DMAX_PRECISION"
-        "-I" "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include" # for sleef_cl.h
-        "-include" "${EXTRA_CONFIG}")
+        "-I"
+        "${pocl_SOURCE_DIR}/lib/kernel/sleef/include" # for sleef_cl.h
+        "-include"
+        "${EXTRA_CONFIG}")
     endif()
 
     if(FILENAME MATCHES "libclc")
       list(APPEND DEPENDLIST ${LIBCLC_KERNEL_DEPEND_HEADERS})
 
-      set(I32 "${CMAKE_SOURCE_DIR}/lib/kernel/libclc/${FNAME_WE}_fp32.cl")
+      set(I32 "${pocl_SOURCE_DIR}/lib/kernel/libclc/${FNAME_WE}_fp32.cl")
       if(EXISTS "${I32}")
         list(APPEND DEPENDLIST "${I32}")
       endif()
 
-      set(I64 "${CMAKE_SOURCE_DIR}/lib/kernel/libclc/${FNAME_WE}_fp64.cl")
+      set(I64 "${pocl_SOURCE_DIR}/lib/kernel/libclc/${FNAME_WE}_fp64.cl")
       if(EXISTS "${I64}")
         list(APPEND DEPENDLIST "${I64}")
       endif()
 
-      list(APPEND INCLUDELIST
-        "-I" "${CMAKE_SOURCE_DIR}/lib/kernel/libclc")
+      list(APPEND INCLUDELIST "-I" "${pocl_SOURCE_DIR}/lib/kernel/libclc")
     endif()
 
     add_custom_command( OUTPUT "${BC_FILE}"
@@ -139,20 +141,20 @@ function(compile_sleef_c_to_bc EXT FILENAME SUBDIR BCLIST)
     if(IS_ABSOLUTE "${FILENAME}")
       set(FULL_F_PATH "${FILENAME}")
     else()
-      set(FULL_F_PATH "${CMAKE_SOURCE_DIR}/lib/kernel/${FILENAME}")
+      set(FULL_F_PATH "${pocl_SOURCE_DIR}/lib/kernel/${FILENAME}")
     endif()
 
-    add_custom_command( OUTPUT "${BC_FILE}"
-        DEPENDS "${FULL_F_PATH}"
-        ${SLEEF_C_KERNEL_DEPEND_HEADERS}
-        COMMAND "${HOST_CLANG}" ${CLANG_FLAGS}
-        ${DEVICE_C_FLAGS} ${KERNEL_C_FLAGS} ${ARGN}
-        "-I" "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/arch"
-        "-I" "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/libm"
-        "-I" "${CMAKE_SOURCE_DIR}/lib/kernel/sleef/include"
-        "-O0" "-o" "${BC_FILE}" "-c" "${FULL_F_PATH}"
-        COMMENT "Building SLEEF to LLVM bitcode ${BC_FILE}"
-        VERBATIM)
+    add_custom_command(
+      OUTPUT "${BC_FILE}"
+      DEPENDS "${FULL_F_PATH}" ${SLEEF_C_KERNEL_DEPEND_HEADERS}
+      COMMAND
+        "${HOST_CLANG}" ${CLANG_FLAGS} ${DEVICE_C_FLAGS} ${KERNEL_C_FLAGS} ${ARGN}
+        "-I" "${pocl_SOURCE_DIR}/lib/kernel/sleef/arch" "-I"
+        "${pocl_SOURCE_DIR}/lib/kernel/sleef/libm" "-I"
+        "${pocl_SOURCE_DIR}/lib/kernel/sleef/include" "-O0" "-o" "${BC_FILE}" "-c"
+        "${FULL_F_PATH}"
+      COMMENT "Building SLEEF to LLVM bitcode ${BC_FILE}"
+      VERBATIM)
 endfunction()
 
 # compiles LLVM IR in text-format (an .ll file) to LLVM IR bitcode (binary format, .bc)
@@ -162,7 +164,7 @@ function(compile_ll_to_bc FILENAME SUBDIR BCLIST)
     if(IS_ABSOLUTE "${FILENAME}")
       set(FULL_F_PATH "${FILENAME}")
     else()
-      set(FULL_F_PATH "${CMAKE_SOURCE_DIR}/lib/kernel/${FILENAME}")
+      set(FULL_F_PATH "${pocl_SOURCE_DIR}/lib/kernel/${FILENAME}")
     endif()
     get_filename_component(FNAME "${FILENAME}" NAME)
     set(BC_FILE "${CMAKE_CURRENT_BINARY_DIR}/${SUBDIR}/${FNAME}.bc")
@@ -199,18 +201,19 @@ function(compile_cl_to_cir FILENAME SUBDIR)
     if(IS_ABSOLUTE "${FILENAME}")
       set(FULL_F_PATH "${FILENAME}")
     else()
-      set(FULL_F_PATH "${CMAKE_SOURCE_DIR}/lib/kernel/${FILENAME}")
+      set(FULL_F_PATH "${pocl_SOURCE_DIR}/lib/kernel/${FILENAME}")
     endif()
-    add_custom_command( OUTPUT "${CIR_FILE}"
-        DEPENDS "${FULL_F_PATH}"
-        "${CMAKE_SOURCE_DIR}/include/pocl_types.h"
-        "${CMAKE_SOURCE_DIR}/include/_kernel_c.h"
-        COMMAND "${HOST_CLANG}" ${CLANG_FLAGS} ${DEVICE_CL_FLAGS} "-O1"
-        "-I${CMAKE_SOURCE_DIR}/include"
-        "-include" "${CMAKE_SOURCE_DIR}/include/_kernel.h"
-        ${KERNEL_CL_FLAGS} "${FULL_F_PATH}" "-o" ${CIR_FILE}
-        COMMENT "Building CL to CIR bytecode ${CIR_FILE}"
-        VERBATIM)
+    add_custom_command(
+      OUTPUT "${CIR_FILE}"
+      DEPENDS "${FULL_F_PATH}" "${pocl_SOURCE_DIR}/include/pocl_types.h"
+              "${pocl_SOURCE_DIR}/include/_kernel_c.h"
+      COMMAND
+        "${HOST_CLANG}" ${CLANG_FLAGS} ${DEVICE_CL_FLAGS} "-O1"
+        "-I${pocl_SOURCE_DIR}/include" "-include"
+        "${pocl_SOURCE_DIR}/include/_kernel.h" ${KERNEL_CL_FLAGS} "${FULL_F_PATH}"
+        "-o" ${CIR_FILE}
+      COMMENT "Building CL to CIR bytecode ${CIR_FILE}"
+      VERBATIM)
 endfunction()
 
 function(compile_cir_to_mlir FILENAME SUBDIR MLIR_FILE_LIST)
@@ -234,7 +237,7 @@ function(compile_mlir_to_mlir FILENAME SUBDIR MLIR_FILE_LIST)
     if(IS_ABSOLUTE "${FILENAME}")
       set(FULL_F_PATH "${FILENAME}")
     else()
-      set(FULL_F_PATH "${CMAKE_SOURCE_DIR}/lib/kernel/${FILENAME}")
+      set(FULL_F_PATH "${pocl_SOURCE_DIR}/lib/kernel/${FILENAME}")
     endif()
     add_custom_command( OUTPUT "${MLIR_FILE}"
         DEPENDS "${FULL_F_PATH}"
@@ -262,11 +265,15 @@ function(generate_cuda_spir_wrapper OUTPUT)
   set(${OUTPUT} "${FNAME}" PARENT_SCOPE)
   set(EXTRA_OPT "--fp16" "-g")
 
-  add_custom_command( OUTPUT "${FNAME}"
-      DEPENDS "${CMAKE_SOURCE_DIR}/lib/kernel/SPIR/generate_spir_wrapper.py"
-      COMMAND "${HOST_PYTHON3}" "${CMAKE_SOURCE_DIR}/lib/kernel/SPIR/generate_spir_wrapper.py" ${EXTRA_OPT} "-t" "cuda" "${FNAME}"
-      COMMENT "Generating CUDA SPIR wrapper to ${FNAME}"
-      VERBATIM)
+  add_custom_command(
+    OUTPUT "${FNAME}"
+    DEPENDS "${pocl_SOURCE_DIR}/lib/kernel/SPIR/generate_spir_wrapper.py"
+    COMMAND
+      "${HOST_PYTHON3}"
+      "${pocl_SOURCE_DIR}/lib/kernel/SPIR/generate_spir_wrapper.py" ${EXTRA_OPT}
+      "-t" "cuda" "${FNAME}"
+    COMMENT "Generating CUDA SPIR wrapper to ${FNAME}"
+    VERBATIM)
 endfunction()
 
 function(generate_cpu_spir_wrapper ARCH SUBDIR SIZE OUTPUT)
@@ -282,11 +289,16 @@ function(generate_cpu_spir_wrapper ARCH SUBDIR SIZE OUTPUT)
     list(APPEND EXTRA_OPT "--mingw")
   endif()
 
-  add_custom_command( OUTPUT "${FNAME}"
-      DEPENDS "${CMAKE_SOURCE_DIR}/lib/kernel/SPIR/generate_spir_wrapper.py"
-      COMMAND "${HOST_PYTHON3}" "${CMAKE_SOURCE_DIR}/lib/kernel/SPIR/generate_spir_wrapper.py" ${EXTRA_OPT} "-t" "${ARCH}" "-r" "${SIZE}" "${FNAME}"
-      COMMENT "Generating ${ARCH} ${VECSIZE}-bit wrapper for ${SUBDIR} to ${FNAME}"
-      VERBATIM)
+  add_custom_command(
+    OUTPUT "${FNAME}"
+    DEPENDS "${pocl_SOURCE_DIR}/lib/kernel/SPIR/generate_spir_wrapper.py"
+    COMMAND
+      "${HOST_PYTHON3}"
+      "${pocl_SOURCE_DIR}/lib/kernel/SPIR/generate_spir_wrapper.py" ${EXTRA_OPT}
+      "-t" "${ARCH}" "-r" "${SIZE}" "${FNAME}"
+    COMMENT
+      "Generating ${ARCH} ${VECSIZE}-bit wrapper for ${SUBDIR} to ${FNAME}"
+    VERBATIM)
 endfunction()
 
 function(make_kernel_bc OUTPUT_VAR NAME SUBDIR USE_SLEEF EXTRA_BC EXTRA_CONFIG)
@@ -347,7 +359,8 @@ function(make_kernel_mlir OUTPUT_VAR NAME SUBDIR USE_SLEEF EXTRA_MLIR EXTRA_CONF
     # straight parsing semicolon separated list with xargs -d didn't work on windows.. no such switch available
     set(MLIR_LIST_FILE_TXT "${MLIR_LIST_FILE_TXT} \"${FILENAME}\"")
   endforeach()
-  set(MLIR_LIST_FILE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/kernel_${NAME}_linklist.txt")
+  set(MLIR_LIST_FILE
+      "${pocl_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/kernel_${NAME}_linklist.txt")
   file(WRITE "${MLIR_LIST_FILE}" "${MLIR_LIST_FILE_TXT}")
 
   set(LINK_OPT_COMMAND COMMAND "${XARGS_EXEC}" "cat" < "${MLIR_LIST_FILE}" > "${KERNEL_MLIR}")

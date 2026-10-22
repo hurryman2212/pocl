@@ -165,8 +165,6 @@ if(UNIX)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie")
 endif()
 
-enable_testing()
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #####################################################
@@ -179,7 +177,7 @@ endif()
 
 #####################################################
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+if(EXISTS "${pocl_SOURCE_DIR}/.git")
   set(DEFAULT_BUILD_TYPE "Debug")
 else()
   set(DEFAULT_BUILD_TYPE "RelWithDebInfo")
@@ -230,28 +228,31 @@ find_program(GIT_CMD "git")
 set_expr(HAVE_GIT GIT_CMD)
 
 if(HAVE_GIT)
-  execute_process(COMMAND "${GIT_CMD}" "rev-parse" "HEAD"
-                  OUTPUT_VARIABLE GIT_COMMIT
-                  RESULT_VARIABLE EXITCODE
-                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(
+    COMMAND "${GIT_CMD}" "rev-parse" "HEAD"
+    OUTPUT_VARIABLE GIT_COMMIT
+    RESULT_VARIABLE EXITCODE
+    WORKING_DIRECTORY "${pocl_SOURCE_DIR}"
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
 
 if(HAVE_GIT AND (VERSION_SUFFIX MATCHES "pre") AND (EXITCODE EQUAL 0))
   message(STATUS "Pocl source Git commit: ${GIT_COMMIT}")
 
-  execute_process(COMMAND "${GIT_CMD}" "branch" "--contains" "${GIT_COMMIT}"
-                  OUTPUT_VARIABLE GIT_BRANCH
-                  RESULT_VARIABLE EXITCODE
-                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(
+    COMMAND "${GIT_CMD}" "branch" "--contains" "${GIT_COMMIT}"
+    OUTPUT_VARIABLE GIT_BRANCH
+    RESULT_VARIABLE EXITCODE
+    WORKING_DIRECTORY "${pocl_SOURCE_DIR}"
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
   message(STATUS "Pocl source Git branch: ${GIT_BRANCH}")
 
-  execute_process(COMMAND "${GIT_CMD}" describe "--always" "--long" "--all" "${GIT_COMMIT}"
-                  OUTPUT_VARIABLE GIT_DESCRIBE
-                  RESULT_VARIABLE EXITCODE
-                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(
+    COMMAND "${GIT_CMD}" describe "--always" "--long" "--all" "${GIT_COMMIT}"
+    OUTPUT_VARIABLE GIT_DESCRIBE
+    RESULT_VARIABLE EXITCODE
+    WORKING_DIRECTORY "${pocl_SOURCE_DIR}"
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 
   string(REPLACE "heads/" "" GIT_DESCRIBE "${GIT_DESCRIBE}")
   message(STATUS "Pocl source Git describe: ${GIT_DESCRIBE}")
@@ -413,6 +414,9 @@ option(EXAMPLES_USE_GIT_MASTER "If enabled, some of the external testsuites in e
 option(ENABLE_POCLCC "Build poclcc. Defaults to ON" ON)
 
 option(ENABLE_TESTS "Build tests. Defaults to ON" ON)
+if(ENABLE_TESTS)
+  enable_testing()
+endif()
 
 option(ENABLE_EXAMPLES "Build examples. Defaults to ON" ON)
 
@@ -617,7 +621,7 @@ endif()
 
 ######################################################################################
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${pocl_SOURCE_DIR}/cmake")
 include(pocl_utils)
 
 if(WIN32 AND (NOT ENABLE_ICD) AND BUILD_SHARED_LIBS)
@@ -1740,8 +1744,8 @@ add_definitions(-DCL_USE_DEPRECATED_OPENCL_1_0_APIS -DCL_USE_DEPRECATED_OPENCL_1
 macro(set_opencl_header_includes)
   add_definitions(-DCL_TARGET_OPENCL_VERSION=${OPENCL_HEADER_VERSION}
                   -DCL_HPP_TARGET_OPENCL_VERSION=${OPENCL_HEADER_VERSION})
-  include_directories("${CMAKE_SOURCE_DIR}/include")
-  include_directories("${CMAKE_SOURCE_DIR}/poclu")
+  include_directories("${pocl_SOURCE_DIR}/include")
+  include_directories("${pocl_SOURCE_DIR}/poclu")
 endmacro()
 
 ######################################################################################
@@ -1756,7 +1760,8 @@ endif()
 set_expr(POCL_KERNEL_CACHE_DEFAULT KERNEL_CACHE_DEFAULT)
 
 string(TIMESTAMP POCL_BUILD_TIMESTAMP "%d%m%Y%H%M%S" UTC)
-file(WRITE "${CMAKE_BINARY_DIR}/pocl_build_timestamp.h" "#define POCL_BUILD_TIMESTAMP \"${POCL_BUILD_TIMESTAMP}\"")
+file(WRITE "${pocl_BINARY_DIR}/pocl_build_timestamp.h"
+     "#define POCL_BUILD_TIMESTAMP \"${POCL_BUILD_TIMESTAMP}\"")
 
 ####################################################################
 
@@ -2488,8 +2493,8 @@ endif()
 
 message(STATUS "Building the following device drivers: ${OCL_DRIVERS}")
 
-set(BUILDDIR "${CMAKE_BINARY_DIR}")
-set(SRCDIR "${CMAKE_SOURCE_DIR}")
+set(BUILDDIR "${pocl_BINARY_DIR}")
+set(SRCDIR "${pocl_SOURCE_DIR}")
 
 ##########################################################
 
@@ -2607,35 +2612,40 @@ set(TCE_AVAILABLE ${ENABLE_TCE})
 set(TCEMC_AVAILABLE ${ENABLE_TCEMC})
 
 configure_file("config.h.in.cmake" "config.h.new" ESCAPE_QUOTES)
-rename_if_different("${CMAKE_BINARY_DIR}/config.h.new" "${CMAKE_BINARY_DIR}/config.h" 0)
+rename_if_different("${pocl_BINARY_DIR}/config.h.new"
+                    "${pocl_BINARY_DIR}/config.h" 0)
 
 configure_file("config2.h.in.cmake" "config2.h.new")
-rename_if_different("${CMAKE_BINARY_DIR}/config2.h.new" "${CMAKE_BINARY_DIR}/config2.h" 0)
+rename_if_different("${pocl_BINARY_DIR}/config2.h.new"
+                    "${pocl_BINARY_DIR}/config2.h" 0)
 
 configure_file("pocl_version.h.in.cmake" "pocl_version.h.new" ESCAPE_QUOTES)
-rename_if_different("${CMAKE_BINARY_DIR}/pocl_version.h.new" "${CMAKE_BINARY_DIR}/pocl_version.h" 0)
+rename_if_different("${pocl_BINARY_DIR}/pocl_version.h.new"
+                    "${pocl_BINARY_DIR}/pocl_version.h" 0)
 
 configure_file("pocl_opencl.h.in.cmake" "pocl_opencl.h.new")
-rename_if_different("${CMAKE_BINARY_DIR}/pocl_opencl.h.new" "${CMAKE_BINARY_DIR}/pocl_opencl.h" 0)
+rename_if_different("${pocl_BINARY_DIR}/pocl_opencl.h.new"
+                    "${pocl_BINARY_DIR}/pocl_opencl.h" 0)
 
 configure_file("cl_offline_compiler.sh.in.cmake" "cl_offline_compiler.sh.config.new" @ONLY)
-rename_if_different(
-  "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh.config.new"
-  "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh.config" 1)
+rename_if_different("${pocl_BINARY_DIR}/cl_offline_compiler.sh.config.new"
+                    "${pocl_BINARY_DIR}/cl_offline_compiler.sh.config" 1)
 if(ENABLE_SPIRV)
   get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
   if(is_multi_config)
-    file(GENERATE
-      OUTPUT "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh.$<CONFIG>"
-      INPUT "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh.config")
+    file(
+      GENERATE
+      OUTPUT "${pocl_BINARY_DIR}/cl_offline_compiler.sh.$<CONFIG>"
+      INPUT "${pocl_BINARY_DIR}/cl_offline_compiler.sh.config")
   else()
-    file(GENERATE
-      OUTPUT "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh"
-      INPUT "${CMAKE_BINARY_DIR}/cl_offline_compiler.sh.config")
+    file(
+      GENERATE
+      OUTPUT "${pocl_BINARY_DIR}/cl_offline_compiler.sh"
+      INPUT "${pocl_BINARY_DIR}/cl_offline_compiler.sh.config")
   endif()
 endif()
 
-include_directories("${CMAKE_BINARY_DIR}")
+include_directories("${pocl_BINARY_DIR}")
 
 # This is used to generate the compiler feature detection header.
 # Currently it's not enabled because it requires CMake > 3.x and
@@ -2663,7 +2673,11 @@ if(ENABLE_ICD)
   else()
     set(CONTENT "$<TARGET_FILE_NAME:pocl>")
   endif()
-  file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/pocl.icd" CONTENT "${CONTENT}" CONDITION 1)
+  file(
+    GENERATE
+    OUTPUT "${pocl_BINARY_DIR}/pocl.icd"
+    CONTENT "${CONTENT}"
+    CONDITION 1)
   # On Windows Khronos ICD loader looks for vendors in registry.
   # https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/cl_khr_icd.html#_icd_loader_vendor_enumeration_on_windows
   if (NOT WIN32)
@@ -2671,12 +2685,17 @@ if(ENABLE_ICD)
     if(is_multi_config)
       message(FATAL_ERROR "When using multi-config generators on Linux/Unix, using ICD is not yet supported")
     endif()
-    install(FILES "${CMAKE_BINARY_DIR}/pocl.icd"
-            DESTINATION "${POCL_INSTALL_ICD_VENDORDIR}" COMPONENT "icd")
+    install(
+      FILES "${pocl_BINARY_DIR}/pocl.icd"
+      DESTINATION "${POCL_INSTALL_ICD_VENDORDIR}"
+      COMPONENT "icd")
     # write icd file for pocl testing
-    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/ocl-vendors")
-    file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/ocl-vendors/pocl-tests.icd"
-         CONTENT "$<TARGET_FILE:pocl>" CONDITION 1)
+    file(MAKE_DIRECTORY "${pocl_BINARY_DIR}/ocl-vendors")
+    file(
+      GENERATE
+      OUTPUT "${pocl_BINARY_DIR}/ocl-vendors/pocl-tests.icd"
+      CONTENT "$<TARGET_FILE:pocl>"
+      CONDITION 1)
   endif()
 
   cpack_add_component("icd")
@@ -2689,14 +2708,17 @@ endif()
 ##########################################################
 
 if(UNIX OR MINGW)
-  configure_file("${CMAKE_SOURCE_DIR}/pocl.pc.in.cmake" "${CMAKE_BINARY_DIR}/pocl.pc" @ONLY)
-  install(FILES "${CMAKE_BINARY_DIR}/pocl.pc"
-          DESTINATION "${POCL_INSTALL_PKGCONFIG_DIR_REL}" COMPONENT "dev")
+  configure_file("${pocl_SOURCE_DIR}/pocl.pc.in.cmake"
+                 "${pocl_BINARY_DIR}/pocl.pc" @ONLY)
+  install(
+    FILES "${pocl_BINARY_DIR}/pocl.pc"
+    DESTINATION "${POCL_INSTALL_PKGCONFIG_DIR_REL}"
+    COMPONENT "dev")
 endif()
 
 # For now always use a mirror copy of ocml, but allow overriding
 # this path later to point to an out-of-tree copy.
-set(OCML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/lib/kernel/ocml")
+set(OCML_SOURCE_DIR "${pocl_SOURCE_DIR}/lib/kernel/ocml")
 
 #############################################################
 
@@ -2716,7 +2738,8 @@ message(STATUS "OPENCL_LIBNAME: ${OPENCL_LIBNAME}")
 ## generate CTestCustom.cmake
 
 if(ENABLE_ASAN OR ENABLE_LSAN)
-  set(SAN_EXTRA "set(ENV{LSAN_OPTIONS} \"suppressions=${CMAKE_SOURCE_DIR}/lsan.supp\")")
+  set(SAN_EXTRA
+      "set(ENV{LSAN_OPTIONS} \"suppressions=${pocl_SOURCE_DIR}/lsan.supp\")")
 endif()
 
 # We need to use the oneAPI environment's LD_LIBRARY_PATH (need to source
@@ -2733,7 +2756,11 @@ endif()
 # we must let ocl-icd load it
 if(ENABLE_PROXY_DEVICE)
 
-  file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/CTestCustom.cmake" CONTENT "
+  file(
+    GENERATE
+    OUTPUT "${pocl_BINARY_DIR}/CTestCustom.cmake"
+    CONTENT
+      "
   ${SAN_EXTRA}
   set(ENV{POCL_ENABLE_UNINIT} \"1\")
   set(ENV{POCL_BUILDING} \"1\")
@@ -2741,11 +2768,15 @@ if(ENABLE_PROXY_DEVICE)
   ")
 else()
 
-  file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/CTestCustom.cmake" CONTENT "
+  file(
+    GENERATE
+    OUTPUT "${pocl_BINARY_DIR}/CTestCustom.cmake"
+    CONTENT
+      "
   ${SAN_EXTRA}
   set(ENV{POCL_ENABLE_UNINIT} \"1\")
   set(ENV{POCL_BUILDING} \"1\")
-  set(ENV{OCL_ICD_VENDORS} \"${CMAKE_BINARY_DIR}/ocl-vendors/\")
+  set(ENV{OCL_ICD_VENDORS} \"${pocl_BINARY_DIR}/ocl-vendors/\")
   ${SYCL_EXTRA}
   ")
 endif()
@@ -2769,10 +2800,14 @@ if(ENABLE_TESTS)
     # add make check targets
     set(COMMON_CTEST_ARGS "--output-on-failure" -j ${HOST_CPU_CORECOUNT} ${COMMAND_USES_TERMINAL})
     if(ENABLE_HOST_CPU_DEVICES)
-      add_custom_target(check COMMAND "${CMAKE_SOURCE_DIR}/tools/scripts/run_cpu_tests" ${COMMON_CTEST_ARGS})
+      add_custom_target(
+        check COMMAND "${pocl_SOURCE_DIR}/tools/scripts/run_cpu_tests"
+                      ${COMMON_CTEST_ARGS})
     endif()
     if(ENABLE_CUDA)
-      add_custom_target(check-cuda COMMAND "${CMAKE_SOURCE_DIR}/tools/scripts/run_cuda_tests" ${COMMON_CTEST_ARGS})
+      add_custom_target(
+        check-cuda COMMAND "${pocl_SOURCE_DIR}/tools/scripts/run_cuda_tests"
+                           ${COMMON_CTEST_ARGS})
     endif()
 
 endif()
@@ -2787,7 +2822,7 @@ if(ENABLE_DOXYGEN)
   find_package(Doxygen REQUIRED)
 
   # configure placeholders in doxyfile
-  configure_file(${CMAKE_SOURCE_DIR}/CMakeDoxyfile ConfiguredDoxyfile @ONLY)
+  configure_file(${pocl_SOURCE_DIR}/CMakeDoxyfile ConfiguredDoxyfile @ONLY)
 
   add_custom_target(gen_doc
           COMMAND ${DOXYGEN_EXECUTABLE} ConfiguredDoxyfile
@@ -2821,8 +2856,8 @@ if(ENABLE_REMOTE_SERVER)
     add_subdirectory("pocld")
 endif()
 
-file(TO_CMAKE_PATH
-  "${CMAKE_SOURCE_DIR}/doc/www/img/pocl-80x60.png" POCL_ICON_PATH)
+file(TO_CMAKE_PATH "${pocl_SOURCE_DIR}/doc/www/img/pocl-80x60.png"
+     POCL_ICON_PATH)
 
 if(WIN32)
   # Work-around for "Invalid escape sequence \U" when using NSIS package
@@ -2832,13 +2867,14 @@ if(WIN32)
   string(REPLACE "/" "\\\\" POCL_ICON_PATH "${POCL_ICON_PATH}")
 endif()
 
-set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/CPack.pocl.description.txt")
+set(CPACK_PACKAGE_DESCRIPTION_FILE
+    "${pocl_SOURCE_DIR}/CPack.pocl.description.txt")
 set(CPACK_PACKAGE_ICON ${POCL_ICON_PATH})
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/pocl/pocl")
 set(CPACK_PACKAGE_CONTACT "https://github.com/pocl/pocl")
 set(CPACK_PACKAGE_CHECKSUM "SHA512")
-set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.with.3rdparty")
+set(CPACK_RESOURCE_FILE_README "${pocl_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${pocl_SOURCE_DIR}/LICENSE.with.3rdparty")
 set(CPACK_GENERATOR "DEB")
 
 set("CPACK_DEBIAN_DEV_PACKAGE_NAME" "libpocl-dev")
@@ -2892,7 +2928,10 @@ if(WIN32 AND TARGET PkgConfig::HWLOC AND NOT PKG_CONFIG_FOUND)
         COMPONENT "lib")
 endif()
 
-include(CPack)
+get_directory_property(POCL_PARENT_DIRECTORY PARENT_DIRECTORY)
+if(NOT POCL_PARENT_DIRECTORY)
+  include(CPack)
+endif()
 
 ##########################################################
 
