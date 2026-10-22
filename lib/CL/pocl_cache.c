@@ -21,6 +21,7 @@
    IN THE SOFTWARE.
 */
 
+#include "pocl_util.h"
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -542,13 +543,11 @@ build_program_compute_hash (cl_program program, unsigned device_i,
     assert (source_len > 0);
     pocl_SHA1_Update (&hash_ctx, (uint8_t *)hash_source, source_len);
 
-    if (program->compiler_options)
-        pocl_SHA1_Update(&hash_ctx, (uint8_t*) program->compiler_options,
-                         strlen(program->compiler_options));
-
-    pocl_SHA1_Update (&hash_ctx,
-                      (uint8_t *)&program->binary_type,
-                      sizeof(cl_program_binary_type));
+    const char *options = pocl_program_device_options (program, device_i);
+    if (options)
+      pocl_SHA1_Update (&hash_ctx, (uint8_t *)options, strlen (options));
+    cl_program_binary_type binary_type = pocl_program_device_binary_type (program, device_i);
+    pocl_SHA1_Update (&hash_ctx, (uint8_t *)&binary_type, sizeof (binary_type));
 
 #ifdef ENABLE_LLVM
     /* The kernel compiler work-group function method affects the

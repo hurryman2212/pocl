@@ -1,13 +1,14 @@
 /* OpenCL runtime library: clGetKernelWorkGroupInfo()
 
    Copyright (c) 2011 Universidad Rey Juan Carlos and
-                 2012-2018 Pekka Jääskeläinen / Tampere University of Technology
+                 2012-2018 Pekka Jääskeläinen / Tampere University of
+   Technology
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
+   of this software and associated documentation files (the "Software"), to
+   deal in the Software without restriction, including without limitation the
+   rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+   sell copies of the Software, and to permit persons to whom the Software is
    furnished to do so, subject to the following conditions:
 
    The above copyright notice and this permission notice shall be included in
@@ -17,22 +18,21 @@
    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-   THE SOFTWARE.
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+   IN THE SOFTWARE.
 */
 
 #include "devices/devices.h"
 #include "pocl_util.h"
 
 extern CL_API_ENTRY cl_int CL_API_CALL
-POname(clGetKernelWorkGroupInfo)
-(cl_kernel kernel,
- cl_device_id device,
- cl_kernel_work_group_info param_name,
- size_t param_value_size,
- void *param_value,
- size_t * param_value_size_ret)
+POname (clGetKernelWorkGroupInfo) (cl_kernel kernel,
+                                   cl_device_id device,
+                                   cl_kernel_work_group_info param_name,
+                                   size_t param_value_size,
+                                   void *param_value,
+                                   size_t *param_value_size_ret)
   CL_API_SUFFIX__VERSION_1_0
 {
 
@@ -43,14 +43,14 @@ POname(clGetKernelWorkGroupInfo)
   if (device != NULL)
     {
       POCL_RETURN_ERROR_ON (
-          !(pocl_device_is_associated_with_kernel (device, kernel)),
-          CL_INVALID_DEVICE,
-          "could not find the device supplied in argument\n");
+        !(pocl_device_is_associated_with_kernel (device, kernel)),
+        CL_INVALID_DEVICE, "could not find the device supplied in argument\n");
     }
   else
     {
-      POCL_RETURN_ERROR_ON((kernel->context->num_devices > 1), CL_INVALID_DEVICE,
-        "No device given and context has > 1 device\n");
+      POCL_RETURN_ERROR_ON ((kernel->context->num_devices > 1),
+                            CL_INVALID_DEVICE,
+                            "No device given and context has > 1 device\n");
       device = kernel->context->devices[0];
     }
 
@@ -65,23 +65,26 @@ POname(clGetKernelWorkGroupInfo)
   POCL_RETURN_ERROR_ON ((dev_i == CL_UINT_MAX), CL_INVALID_KERNEL,
                         "the kernel was not built for this device\n");
 
+  pocl_kernel_metadata_t *metadata
+    = pocl_program_find_device_kernel (kernel->program, dev_i, kernel->name);
+  POCL_RETURN_ERROR_COND (!metadata, CL_INVALID_DEVICE);
   POCL_RETURN_ERROR_COND (
     (POCL_ATOMIC_LOAD_PTR (device->available) == CL_FALSE),
     CL_DEVICE_NOT_AVAILABLE);
   /************************************************************************/
 
-  pocl_kernel_device_metadata_t *device_meta = &kernel->meta->devices[dev_i];
+  pocl_kernel_device_metadata_t *device_meta = &metadata->devices[dev_i];
   switch (param_name)
     {
     case CL_KERNEL_GLOBAL_WORK_SIZE:
       {
         /* this parameter is only for custom devices & builtin kernels. */
         POCL_RETURN_ERROR_ON (
-          ((kernel->meta->builtin_kernel_id == 0)
+          ((metadata->builtin_kernel_id == 0)
            || (device->type != CL_DEVICE_TYPE_CUSTOM)),
           CL_INVALID_VALUE,
           "only valid for custom devices or builtin kernels\n");
-        POCL_RETURN_GETINFO (size_t_3, kernel->meta->builtin_max_global_work);
+        POCL_RETURN_GETINFO (size_t_3, metadata->builtin_max_global_work);
       }
     case CL_KERNEL_WORK_GROUP_SIZE:
       {
@@ -89,17 +92,14 @@ POname(clGetKernelWorkGroupInfo)
           POCL_RETURN_GETINFO (size_t, device_meta->max_workgroup_size);
         else // fallback to device's CL_DEVICE_MAX_WORK_GROUP_SIZE
           return POname (clGetDeviceInfo) (
-              device, CL_DEVICE_MAX_WORK_GROUP_SIZE, param_value_size,
-              param_value, param_value_size_ret);
+            device, CL_DEVICE_MAX_WORK_GROUP_SIZE, param_value_size,
+            param_value, param_value_size_ret);
       }
     case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
-    {
-        POCL_MSG_PRINT_GENERAL (
-            "### reqd wg sizes %zu %zu %zu\n", kernel->meta->reqd_wg_size[0],
-            kernel->meta->reqd_wg_size[1], kernel->meta->reqd_wg_size[2]);
-        POCL_RETURN_GETINFO (size_t_3,
-                             *(size_t_3 *)kernel->meta->reqd_wg_size);
-    }
+      {
+        const size_t *required = metadata->reqd_wg_size;
+        POCL_RETURN_GETINFO (size_t_3, *(const size_t_3 *)required);
+      }
     case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
       {
         if (device_meta->preferred_wg_multiple > 0)
@@ -108,24 +108,24 @@ POname(clGetKernelWorkGroupInfo)
           POCL_RETURN_GETINFO (size_t, device->preferred_wg_size_multiple);
       }
     case CL_KERNEL_LOCAL_MEM_SIZE:
-    {
-      cl_ulong total_local_size = 0;
-      /* add the static local_mem argument sizes */
-      if (device_meta->local_mem_size > 0)
-        total_local_size = device_meta->local_mem_size;
-      /* add the dynamically set local_mem argument sizes */
-      for (unsigned i = 0; i < kernel->meta->num_args; ++i)
-        {
-          if (kernel->meta->arg_info[i].type != POCL_ARG_TYPE_POINTER)
-            continue;
-          if (kernel->meta->arg_info[i].address_qualifier
-              != CL_KERNEL_ARG_ADDRESS_LOCAL)
-            continue;
-          total_local_size += (kernel->dyn_arguments[i].size);
-        }
+      {
+        cl_ulong total_local_size = 0;
+        /* add the static local_mem argument sizes */
+        if (device_meta->local_mem_size > 0)
+          total_local_size = device_meta->local_mem_size;
+        /* add the dynamically set local_mem argument sizes */
+        for (unsigned i = 0; i < metadata->num_args; ++i)
+          {
+            if (metadata->arg_info[i].type != POCL_ARG_TYPE_POINTER)
+              continue;
+            if (metadata->arg_info[i].address_qualifier
+                != CL_KERNEL_ARG_ADDRESS_LOCAL)
+              continue;
+            total_local_size += (kernel->dyn_arguments[i].size);
+          }
 
-      POCL_RETURN_GETINFO (cl_ulong, total_local_size);
-    }
+        POCL_RETURN_GETINFO (cl_ulong, total_local_size);
+      }
     case CL_KERNEL_PRIVATE_MEM_SIZE:
       {
         POCL_RETURN_GETINFO (size_t, device_meta->private_mem_size);
@@ -139,4 +139,4 @@ POname(clGetKernelWorkGroupInfo)
     }
   return CL_SUCCESS;
 }
-POsym(clGetKernelWorkGroupInfo)
+POsym (clGetKernelWorkGroupInfo)

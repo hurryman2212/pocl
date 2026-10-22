@@ -24,10 +24,16 @@
 
 #include "pocl_util.h"
 
-CL_API_ENTRY cl_int CL_API_ENTRY POname (clGetKernelSubGroupInfo) (
-    cl_kernel kernel, cl_device_id device, cl_kernel_sub_group_info param_name,
-    size_t input_value_size, const void *input_value, size_t param_value_size,
-    void *param_value, size_t *param_value_size_ret) CL_API_SUFFIX__VERSION_2_1
+CL_API_ENTRY cl_int CL_API_ENTRY
+POname (clGetKernelSubGroupInfo) (cl_kernel kernel,
+                                  cl_device_id device,
+                                  cl_kernel_sub_group_info param_name,
+                                  size_t input_value_size,
+                                  const void *input_value,
+                                  size_t param_value_size,
+                                  void *param_value,
+                                  size_t *param_value_size_ret)
+  CL_API_SUFFIX__VERSION_2_1
 {
   POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_VALID (kernel)), CL_INVALID_KERNEL);
 
@@ -79,9 +85,12 @@ CL_API_ENTRY cl_int CL_API_ENTRY POname (clGetKernelSubGroupInfo) (
                             CL_INVALID_VALUE, "NDRange not given.");
     }
 
+  pocl_kernel_metadata_t *metadata
+    = pocl_program_find_device_kernel (kernel->program, dev_i, kernel->name);
+  POCL_RETURN_ERROR_COND (!metadata, CL_INVALID_DEVICE);
   /************************************************************************/
 
-  pocl_kernel_device_metadata_t *device_meta = &kernel->meta->devices[dev_i];
+  pocl_kernel_device_metadata_t *device_meta = &metadata->devices[dev_i];
   switch (param_name)
     {
     /************ these are NOT dependent on NDRANGE ***********************/
@@ -96,7 +105,7 @@ CL_API_ENTRY cl_int CL_API_ENTRY POname (clGetKernelSubGroupInfo) (
 
     case CL_KERNEL_COMPILE_SUB_GROUP_SIZE_INTEL:
       /* Returns 0 if the intel_reqd_sub_group_size attribute is not set. */
-      POCL_RETURN_GETINFO (size_t, kernel->meta->reqd_sub_group_size);
+      POCL_RETURN_GETINFO (size_t, metadata->reqd_sub_group_size);
 
     default:
       POCL_RETURN_ERROR_ON ((realdev->ops->get_subgroup_info_ext == NULL),
@@ -109,4 +118,4 @@ CL_API_ENTRY cl_int CL_API_ENTRY POname (clGetKernelSubGroupInfo) (
         param_value_size, param_value, param_value_size_ret);
     }
 }
-POsym(clGetKernelSubGroupInfo)
+POsym (clGetKernelSubGroupInfo)

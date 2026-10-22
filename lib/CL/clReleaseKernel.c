@@ -71,15 +71,25 @@ POname(clReleaseKernel)(cl_kernel kernel) CL_API_SUFFIX__VERSION_1_0
       /* Find the kernel in the program's linked list of kernels */
       POCL_LOCK_OBJ (program);
       LL_DELETE (program->kernels, kernel);
+      ++program->kernel_creations;
+      POCL_UNLOCK_OBJ (program);
 
       for (i = 0; i < program->num_devices; ++i)
         {
           cl_device_id device = program->devices[i];
-          if (device->ops->free_kernel
+          if ((!kernel->device_meta || kernel->device_meta[i]) && device->ops->free_kernel
               && (POCL_ATOMIC_LOAD_PTR (device->available) == CL_TRUE))
-            device->ops->free_kernel (device, program, kernel, i);
+            {
+              pocl_kernel_metadata_t *canonical = kernel->meta;
+              if (kernel->device_meta)
+                kernel->meta = kernel->device_meta[i];
+              device->ops->free_kernel (device, program, kernel, i);
+              kernel->meta = canonical;
+            }
         }
 
+      POCL_LOCK_OBJ (program);
+      --program->kernel_creations;
       if (kernel->meta->total_argument_storage_size)
         {
           POCL_MEM_FREE (kernel->dyn_argument_storage);
@@ -100,6 +110,7 @@ POname(clReleaseKernel)(cl_kernel kernel) CL_API_SUFFIX__VERSION_1_0
       kernel->indirect_raw_ptrs = NULL;
 
       POCL_MEM_FREE (kernel->data);
+      POCL_MEM_FREE (kernel->device_meta);
       POCL_MEM_FREE (kernel->dyn_arguments);
       POCL_DESTROY_OBJECT (kernel);
       POCL_MEM_FREE (kernel);

@@ -25,9 +25,9 @@
 #include <string.h>
 
 #ifndef _WIN32
-#  include <unistd.h>
+#include <unistd.h>
 #else
-#  include "vccompat.hpp"
+#include "vccompat.hpp"
 #endif
 
 #include "devices.h"
@@ -38,7 +38,7 @@
 #include "pocl_util.h"
 
 CL_API_ENTRY cl_int CL_API_CALL
-POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
+POname (clReleaseProgram) (cl_program program) CL_API_SUFFIX__VERSION_1_0
 {
   int new_refcount;
   unsigned i, j;
@@ -54,8 +54,8 @@ POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
   if (program->pocl_refcount == 1)
     {
       cl_int prepare = pocl_pre_release (
-          program, POCL_RELEASE_PROGRAM, program->devices,
-          program->num_devices, &program->release, &program->pocl_lock);
+        program, POCL_RELEASE_PROGRAM, program->devices, program->num_devices,
+        &program->release, &program->pocl_lock);
       if (prepare != CL_SUCCESS)
         {
           POCL_UNLOCK_OBJ (program);
@@ -64,8 +64,8 @@ POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
     }
   POCL_RELEASE_OBJECT_UNLOCKED (program, new_refcount);
   POCL_MSG_PRINT_REFCOUNTS (
-      "Release Program %" PRId64 " (%p), Refcount: %d, Kernel #: %zu \n",
-      program->id, program, new_refcount, program->num_kernels);
+    "Release Program %" PRId64 " (%p), Refcount: %d, Kernel #: %zu \n",
+    program->id, program, new_refcount, program->num_kernels);
 
   if (new_refcount == 0)
     {
@@ -85,18 +85,27 @@ POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
       for (i = 0; i < program->num_devices; ++i)
         {
           cl_device_id device = program->devices[i];
+          pocl_kernel_metadata_t *canonical = program->kernel_meta;
+          size_t canonical_count = program->num_kernels;
+          if (program->device_states)
+            {
+              program->kernel_meta = program->device_states[i].kernel_meta;
+              program->num_kernels = program->device_states[i].num_kernels;
+            }
           if (device->ops->free_program
               && POCL_ATOMIC_LOAD_PTR (device->available) == CL_TRUE)
             device->ops->free_program (device, program, i);
+          program->kernel_meta = canonical;
+          program->num_kernels = canonical_count;
         }
 
       if (program->devices != program->context->devices
           && program->devices != program->associated_devices)
-        POCL_MEM_FREE(program->devices);
+        POCL_MEM_FREE (program->devices);
       if (program->associated_devices != program->context->devices)
         POCL_MEM_FREE (program->associated_devices);
 
-      POCL_MEM_FREE(program->source);
+      POCL_MEM_FREE (program->source);
 
       POCL_MEM_FREE (program->program_il);
       POCL_MEM_FREE (program->spec_const_ids);
@@ -104,33 +113,43 @@ POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
       POCL_MEM_FREE (program->spec_const_sizes);
       POCL_MEM_FREE (program->spec_const_values);
 
-      POCL_MEM_FREE(program->binary_sizes);
+      POCL_MEM_FREE (program->binary_sizes);
       if (program->binaries)
         for (i = 0; i < program->associated_num_devices; ++i)
-          POCL_MEM_FREE(program->binaries[i]);
-      POCL_MEM_FREE(program->binaries);
+          POCL_MEM_FREE (program->binaries[i]);
+      POCL_MEM_FREE (program->binaries);
 
-      POCL_MEM_FREE(program->pocl_binary_sizes);
+      POCL_MEM_FREE (program->pocl_binary_sizes);
       if (program->pocl_binaries)
         for (i = 0; i < program->associated_num_devices; ++i)
-          POCL_MEM_FREE(program->pocl_binaries[i]);
-      POCL_MEM_FREE(program->pocl_binaries);
+          POCL_MEM_FREE (program->pocl_binaries[i]);
+      POCL_MEM_FREE (program->pocl_binaries);
 
-      pocl_cache_cleanup_cachedir(program);
+      pocl_cache_cleanup_cachedir (program);
 
       if (program->build_log)
         for (i = 0; i < program->associated_num_devices; ++i)
-          POCL_MEM_FREE(program->build_log[i]);
-      POCL_MEM_FREE(program->build_log);
+          POCL_MEM_FREE (program->build_log[i]);
+      POCL_MEM_FREE (program->build_log);
 
-      for (i = 0; i < program->num_kernels; i++)
+      if (program->device_states)
         {
-          pocl_free_kernel_metadata (program, i);
+          for (i = 0; i < program->num_devices; ++i)
+            {
+              pocl_free_program_device_metadata (program, i);
+              POCL_MEM_FREE (program->device_states[i].options);
+              POCL_MEM_FREE (program->device_states[i].compiler_options);
+            }
+          POCL_MEM_FREE (program->device_states);
         }
+      else
+        for (i = 0; i < program->num_kernels; ++i)
+          pocl_free_kernel_metadata (program, i);
       POCL_MEM_FREE (program->kernel_meta);
 
       POCL_MEM_FREE (program->build_hash);
       POCL_MEM_FREE (program->compiler_options);
+      POCL_MEM_FREE (program->original_options);
       POCL_MEM_FREE (program->data);
       POCL_MEM_FREE (program->global_var_total_size);
       POCL_MEM_FREE (program->llvm_irs);
@@ -165,4 +184,4 @@ POname(clReleaseProgram)(cl_program program) CL_API_SUFFIX__VERSION_1_0
   pocl_retry_releases ();
   return CL_SUCCESS;
 }
-POsym(clReleaseProgram)
+POsym (clReleaseProgram)

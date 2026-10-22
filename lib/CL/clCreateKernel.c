@@ -4,30 +4,30 @@
                  2012-2019 Pekka Jääskeläinen
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
+   of this software and associated documentation files (the "Software"), to
+   deal in the Software without restriction, including without limitation the
+   rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+   sell copies of the Software, and to permit persons to whom the Software is
    furnished to do so, subject to the following conditions:
-   
+
    The above copyright notice and this permission notice shall be included in
    all copies or substantial portions of the Software.
-   
+
    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-   THE SOFTWARE.
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+   IN THE SOFTWARE.
 */
 
 #include <string.h>
 #include <sys/stat.h>
 #ifndef _WIN32
-#  include <unistd.h>
+#include <unistd.h>
 #else
-#  include "vccompat.hpp"
+#include "vccompat.hpp"
 #endif
 
 #include "pocl_cl.h"
@@ -38,30 +38,38 @@
 #include "utlist.h"
 
 CL_API_ENTRY cl_kernel CL_API_CALL
-POname(clCreateKernel)(cl_program program,
-               const char *kernel_name,
-               cl_int *errcode_ret) CL_API_SUFFIX__VERSION_1_0
+POname (clCreateKernel) (cl_program program, const char *kernel_name,
+                         cl_int *errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   cl_kernel kernel = NULL;
   int errcode = CL_SUCCESS;
   size_t i;
+  int creation_guard = 0;
 
-  POCL_GOTO_ERROR_COND((kernel_name == NULL), CL_INVALID_VALUE);
+  POCL_GOTO_ERROR_COND ((kernel_name == NULL), CL_INVALID_VALUE);
 
   POCL_GOTO_ERROR_COND ((!IS_CL_OBJECT_VALID (program)), CL_INVALID_PROGRAM);
 
-  POCL_GOTO_ERROR_ON((program->build_status == CL_BUILD_NONE),
-    CL_INVALID_PROGRAM_EXECUTABLE, "You must call clBuildProgram first!"
-      " (even for programs created with binaries)\n");
+  POCL_LOCK_OBJ (program);
+  if (program->build_in_progress)
+    {
+      POCL_UNLOCK_OBJ (program);
+      errcode = CL_INVALID_OPERATION;
+      goto ERROR;
+    }
+  ++program->kernel_creations;
+  POCL_RETAIN_OBJECT_UNLOCKED (program);
+  creation_guard = 1;
+  POCL_UNLOCK_OBJ (program);
 
-  POCL_GOTO_ERROR_ON((program->build_status != CL_BUILD_SUCCESS),
-    CL_INVALID_PROGRAM_EXECUTABLE, "Last BuildProgram() was not successful\n");
+  POCL_GOTO_ERROR_ON (!pocl_program_has_executable (program),
+                      CL_INVALID_PROGRAM_EXECUTABLE, "No device has an executable\n");
 
   assert (program->num_devices != 0);
 
-  kernel = (cl_kernel) calloc(1, sizeof(struct _cl_kernel));
-  POCL_GOTO_ERROR_ON((kernel == NULL), CL_OUT_OF_HOST_MEMORY,
-                     "clCreateKernel couldn't allocate memory");
+  kernel = (cl_kernel)calloc (1, sizeof (struct _cl_kernel));
+  POCL_GOTO_ERROR_ON ((kernel == NULL), CL_OUT_OF_HOST_MEMORY,
+                      "clCreateKernel couldn't allocate memory");
 
   POCL_INIT_OBJECT (kernel, program);
 
@@ -75,6 +83,9 @@ POname(clCreateKernel)(cl_program program,
 
   kernel->meta = &program->kernel_meta[i];
   kernel->data = (void **)calloc (program->num_devices, sizeof (void *));
+  kernel->device_meta = calloc (program->num_devices, sizeof (*kernel->device_meta));
+  POCL_GOTO_ERROR_COND (!kernel->device_meta, CL_OUT_OF_HOST_MEMORY);
+  POCL_GOTO_ERROR_COND (!kernel->data, CL_OUT_OF_HOST_MEMORY);
   kernel->name = kernel->meta->name;
   kernel->context = program->context;
   kernel->program = program;
@@ -82,7 +93,7 @@ POname(clCreateKernel)(cl_program program,
 
   kernel->dyn_arguments = (pocl_argument *)calloc (
       (kernel->meta->num_args), sizeof (struct pocl_argument));
-  POCL_GOTO_ERROR_COND ((kernel->dyn_arguments == NULL),
+  POCL_GOTO_ERROR_COND ((kernel->meta->num_args && kernel->dyn_arguments == NULL),
                         CL_OUT_OF_HOST_MEMORY);
 
   if (kernel->meta->total_argument_storage_size)
@@ -91,6 +102,7 @@ POname(clCreateKernel)(cl_program program,
           = (char *)calloc (1, kernel->meta->total_argument_storage_size);
       kernel->dyn_argument_offsets
           = (void **)malloc (kernel->meta->num_args * sizeof (void *));
+      POCL_GOTO_ERROR_COND (!kernel->dyn_argument_storage || !kernel->dyn_argument_offsets, CL_OUT_OF_HOST_MEMORY);
 
       size_t offset = 0;
       for (i = 0; i < kernel->meta->num_args; ++i)
@@ -102,7 +114,7 @@ POname(clCreateKernel)(cl_program program,
             offset = (offset | (alignment - 1)) + 1;
 
           kernel->dyn_argument_offsets[i]
-            = kernel->dyn_argument_storage + offset;
+              = kernel->dyn_argument_storage + offset;
 
           offset += type_size;
         }
@@ -112,13 +124,16 @@ POname(clCreateKernel)(cl_program program,
   for (i = 0; i < program->num_devices; ++i)
     {
       cl_device_id device = program->devices[i];
-      if (device->ops->create_kernel
+      kernel->device_meta[i] = pocl_program_find_device_kernel (program, i, kernel_name);
+      if (kernel->device_meta[i] && device->ops->create_kernel
           && POCL_ATOMIC_LOAD_PTR (device->available) == CL_TRUE)
         {
-          POCL_LOCK_OBJ (program);
+          pocl_kernel_metadata_t *canonical = kernel->meta;
+          kernel->meta = kernel->device_meta[i];
           int r = device->ops->create_kernel (device, program, kernel, i);
-          POCL_UNLOCK_OBJ (program);
-          POCL_GOTO_ERROR_ON ((r != CL_SUCCESS), CL_OUT_OF_RESOURCES,
+          kernel->meta = canonical;
+          POCL_GOTO_ERROR_ON ((r != CL_SUCCESS),
+                              device->ops->external_build_options ? r : CL_OUT_OF_RESOURCES,
                               "could not create device-specific data "
                               "for kernel %s\n",
                               kernel->name);
@@ -144,6 +159,7 @@ ERROR:
     {
       POCL_MEM_FREE (kernel->dyn_arguments);
       POCL_MEM_FREE (kernel->data);
+      POCL_MEM_FREE (kernel->device_meta);
       POCL_MEM_FREE (kernel->dyn_argument_storage);
       POCL_MEM_FREE (kernel->dyn_argument_offsets);
     }
@@ -151,10 +167,17 @@ ERROR:
   kernel = NULL;
 
 EXIT_NO_ERROR:
-  if(errcode_ret != NULL)
-  {
-    *errcode_ret = errcode;
-  }
+  if (creation_guard)
+    {
+      POCL_LOCK_OBJ (program);
+      --program->kernel_creations;
+      POCL_UNLOCK_OBJ (program);
+      pocl_release_owned (POCL_RELEASE_PROGRAM, program);
+    }
+  if (errcode_ret != NULL)
+    {
+      *errcode_ret = errcode;
+    }
   return kernel;
 }
-POsym(clCreateKernel)
+POsym (clCreateKernel)
