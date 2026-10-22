@@ -114,6 +114,13 @@ POname(clCreateCommandQueue)(cl_context context,
   POCL_MSG_PRINT_INFO ("Created Command Queue %" PRId64 " (%p) on device %d\n",
                        command_queue->id, command_queue, device->dev_id);
 
+  if (errcode != CL_SUCCESS && (properties & CL_QUEUE_HIDDEN) == 0)
+    {
+      command_queue->user_refcount = 0;
+      pocl_release_owned (POCL_RELEASE_QUEUE, command_queue);
+      pocl_retry_releases ();
+      return NULL;
+    }
   return command_queue;
 
 ERROR:

@@ -5,9 +5,9 @@
  */
 
 #include "pocl_cl.h"
-#include "pocl_llvm.h"
 #include "pocl_intfn.h"
-
+#include "pocl_llvm.h"
+#include "pocl_util.h"
 
 CL_API_ENTRY cl_int CL_API_CALL
 POname(clCreateKernelsInProgram)(cl_program      program ,
@@ -67,7 +67,7 @@ POname(clCreateKernelsInProgram)(cl_program      program ,
           if (error_ret != CL_SUCCESS)
             {
               for (; idx>0; idx--)
-                POname(clReleaseKernel) (kernels[idx-1]);
+                pocl_release_owned (POCL_RELEASE_KERNEL, kernels[idx - 1]);
               /* If error_ret is INVALID_KERNEL_DEFINITION, returning it here
                * is against the specification. But the specs doesn't say what to
                * do in such a case, and just returning it is the sanest thing

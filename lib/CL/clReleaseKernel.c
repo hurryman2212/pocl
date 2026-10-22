@@ -32,9 +32,25 @@ POname(clReleaseKernel)(cl_kernel kernel) CL_API_SUFFIX__VERSION_1_0
   int new_refcount;
   unsigned i;
 
-  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_VALID (kernel)), CL_INVALID_KERNEL);
+  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_ALIVE (kernel)), CL_INVALID_KERNEL);
 
+  uint64_t release_phase = POCL_ATOMIC_LOAD (kernel->release.phase);
+  if (release_phase == POCL_RELEASE_STATE_PREPARING
+      || release_phase == POCL_RELEASE_STATE_FINALIZING
+      || release_phase == POCL_RELEASE_STATE_CALLBACKS)
+    return CL_INVALID_OPERATION;
   POCL_LOCK_OBJ (kernel);
+  if (kernel->pocl_refcount == 1)
+    {
+      cl_int prepare = pocl_pre_release (
+          kernel, POCL_RELEASE_KERNEL, kernel->program->devices,
+          kernel->program->num_devices, &kernel->release, &kernel->pocl_lock);
+      if (prepare != CL_SUCCESS)
+        {
+          POCL_UNLOCK_OBJ (kernel);
+          return prepare;
+        }
+    }
   POCL_RELEASE_OBJECT_UNLOCKED (kernel, new_refcount);
   POCL_MSG_PRINT_REFCOUNTS ("Release Kernel %s (%p), Refcount: %d\n",
                             kernel->name, kernel, new_refcount);
@@ -89,7 +105,7 @@ POname(clReleaseKernel)(cl_kernel kernel) CL_API_SUFFIX__VERSION_1_0
       POCL_MEM_FREE (kernel);
       POCL_UNLOCK_OBJ (program);
 
-      POname(clReleaseProgram) (program);
+      pocl_release_owned (POCL_RELEASE_PROGRAM, program);
     }
   else
     {
@@ -97,6 +113,7 @@ POname(clReleaseKernel)(cl_kernel kernel) CL_API_SUFFIX__VERSION_1_0
       POCL_UNLOCK_OBJ (kernel);
     }
 
+  pocl_retry_releases ();
   return CL_SUCCESS;
 }
 POsym(clReleaseKernel)

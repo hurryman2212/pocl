@@ -42,12 +42,28 @@ POname(clReleaseMemObject)(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
   unsigned i;
   mem_destructor_callback_t *callback, *next_callback;
 
-  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_VALID (memobj)),
+  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_ALIVE (memobj)),
                           CL_INVALID_MEM_OBJECT);
 
   cl_context context = memobj->context;
 
+  uint64_t release_phase = POCL_ATOMIC_LOAD (memobj->release.phase);
+  if (release_phase == POCL_RELEASE_STATE_PREPARING
+      || release_phase == POCL_RELEASE_STATE_FINALIZING
+      || release_phase == POCL_RELEASE_STATE_CALLBACKS)
+    return CL_INVALID_OPERATION;
   POCL_LOCK_OBJ (memobj);
+  if (memobj->pocl_refcount == 1)
+    {
+      cl_int prepare = pocl_pre_release (
+          memobj, POCL_RELEASE_MEM, memobj->context->devices,
+          memobj->context->num_devices, &memobj->release, &memobj->pocl_lock);
+      if (prepare != CL_SUCCESS)
+        {
+          POCL_UNLOCK_OBJ (memobj);
+          return prepare;
+        }
+    }
   POCL_RELEASE_OBJECT_UNLOCKED (memobj, new_refcount);
 
   if (memobj->parent != NULL)
@@ -72,6 +88,9 @@ POname(clReleaseMemObject)(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
     {
       if (memobj->destructor_callbacks)
         {
+          if (memobj->release.phase)
+            POCL_ATOMIC_STORE (memobj->release.phase,
+                               POCL_RELEASE_STATE_CALLBACKS);
           pocl_mem_cb_push (memobj);
           POCL_UNLOCK_OBJ (memobj);
           return CL_SUCCESS;
@@ -98,10 +117,10 @@ POname(clReleaseMemObject)(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
           cl_context c = b->context;
           assert (b);
           /* there is a retain on both the parent and the context */
-          err = POname (clReleaseMemObject) (b);
+          err = pocl_release_owned (POCL_RELEASE_MEM, b);
           assert (err == CL_SUCCESS);
           POCL_MEM_FREE (memobj->device_supports_this_image);
-          err = POname (clReleaseContext) (c);
+          err = pocl_release_owned (POCL_RELEASE_CONTEXT, c);
           POCL_MEM_FREE (memobj);
           return err;
         }
@@ -141,7 +160,7 @@ POname(clReleaseMemObject)(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
               free_sub_buffer_data (sb->mem);
 
               if (sb->mem->last_updater != NULL)
-                POname (clReleaseEvent) (sb->mem->last_updater);
+                pocl_release_event_owned (sb->mem->last_updater);
               LL_DELETE (memobj->implicit_sub_buffers, sb);
 
               /* The device pointers itself are freed in free_sub_buffer_data
@@ -202,12 +221,12 @@ POname(clReleaseMemObject)(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
       POCL_MEM_FREE(memobj);
 
       if (parent)
-        POname(clReleaseMemObject)(parent);
+        pocl_release_owned (POCL_RELEASE_MEM, parent);
 
-      POname(clReleaseContext)(context);
+      pocl_release_owned (POCL_RELEASE_CONTEXT, context);
 
       if (last)
-        POname (clReleaseEvent) (last);
+        pocl_release_event_owned (last);
     }
   else
     {
@@ -215,6 +234,7 @@ POname(clReleaseMemObject)(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
       POCL_UNLOCK_OBJ (memobj);
     }
 
+  pocl_retry_releases ();
   return CL_SUCCESS;
 }
 POsym (clReleaseMemObject)

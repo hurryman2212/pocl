@@ -29,18 +29,38 @@
 static cl_int
 releaseCommandQueue (cl_command_queue command_queue, int user_ref)
 {
-  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_VALID (command_queue)),
+  POCL_RETURN_ERROR_COND ((!IS_CL_OBJECT_ALIVE (command_queue)),
                           CL_INVALID_COMMAND_QUEUE);
 
+  uint64_t release_phase = POCL_ATOMIC_LOAD (command_queue->release.phase);
+  if (release_phase == POCL_RELEASE_STATE_PREPARING
+      || release_phase == POCL_RELEASE_STATE_FINALIZING
+      || release_phase == POCL_RELEASE_STATE_CALLBACKS)
+    return CL_INVALID_OPERATION;
   POCL_LOCK_OBJ (command_queue);
+  if (user_ref && command_queue->user_refcount <= 0)
+    {
+      POCL_UNLOCK_OBJ (command_queue);
+      return CL_INVALID_COMMAND_QUEUE;
+    }
+  if (command_queue->pocl_refcount == 1)
+    {
+      cl_int prepare = pocl_pre_release (
+          command_queue, POCL_RELEASE_QUEUE, &command_queue->device, 1,
+          &command_queue->release, &command_queue->pocl_lock);
+      if (prepare != CL_SUCCESS)
+        {
+          POCL_UNLOCK_OBJ (command_queue);
+          return prepare;
+        }
+    }
   if (user_ref)
     {
-      assert (command_queue->user_refcount > 0);
       assert (command_queue->user_refcount <= command_queue->pocl_refcount);
       --command_queue->user_refcount;
       // OpenCL 3.1: relax the behavior so there is no implicit flush
       // if the reference count is still nonzero after releasing
-      if (command_queue->user_refcount == 0
+      if (command_queue->user_refcount == 0 && command_queue->pocl_refcount > 1
           && command_queue->device->ops->flush)
         command_queue->device->ops->flush (command_queue->device,
                                            command_queue);
@@ -58,6 +78,7 @@ releaseCommandQueue (cl_command_queue command_queue, int user_ref)
 
       cl_context context = command_queue->context;
       cl_device_id device = command_queue->device;
+      cl_bool hidden = (command_queue->properties & CL_QUEUE_HIDDEN) != 0;
 
       TP_FREE_QUEUE (context->id, command_queue->id);
 
@@ -69,7 +90,6 @@ releaseCommandQueue (cl_command_queue command_queue, int user_ref)
           POCL_LOCK_OBJ (context);
           DL_DELETE (context->command_queues, command_queue);
           POCL_UNLOCK_OBJ (context);
-          POname (clReleaseContext) (context);
         }
 
       assert (command_queue->command_count == 0);
@@ -81,6 +101,8 @@ releaseCommandQueue (cl_command_queue command_queue, int user_ref)
         command_queue->device->ops->free_queue (device, command_queue);
       POCL_DESTROY_OBJECT (command_queue);
       POCL_MEM_FREE(command_queue);
+      if (!hidden)
+        pocl_release_owned (POCL_RELEASE_CONTEXT, context);
     }
   else
     {
@@ -88,6 +110,7 @@ releaseCommandQueue (cl_command_queue command_queue, int user_ref)
       POCL_UNLOCK_OBJ (command_queue);
     }
 
+  pocl_retry_releases ();
   return CL_SUCCESS;
 }
 

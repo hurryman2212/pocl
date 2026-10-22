@@ -940,7 +940,7 @@ pocl_broadcast (cl_event brc_event)
       POCL_UNLOCK_OBJ (brc_event);
       /* Now that the event is deleted from the notify_list,
        * undo the retain done during pocl_create_event_sync. */
-      POname (clReleaseEvent) (target->event);
+      pocl_release_event_owned (target->event);
       POCL_LOCK_OBJ (brc_event);
       pocl_mem_manager_free_event_node (target);
     }

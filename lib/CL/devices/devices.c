@@ -658,6 +658,7 @@ pocl_init_devices (cl_platform_id platform)
   else
     {
       POCL_INIT_LOCK (pocl_context_handling_lock);
+      pocl_release_init ();
     }
 
   /* first time initialization */

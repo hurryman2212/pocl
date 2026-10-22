@@ -1,3 +1,4 @@
+#include "pocl_util.h"
 #include "pocl_cl.h"
 #include "utlist.h"
 
@@ -55,7 +56,7 @@ POname(clSetEventCallback) (cl_event     event ,
       cb_ptr->callback_function (event, cb_ptr->trigger_status,
                                  cb_ptr->user_data);
       free (cb_ptr);
-      POname (clReleaseEvent) (event);
+      pocl_release_event_owned (event);
     }
   
 

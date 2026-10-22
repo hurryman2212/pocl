@@ -215,7 +215,7 @@ ERROR:
       DL_DELETE (image->mappings, mapping_info);
       --image->map_count;
       POCL_UNLOCK_OBJ (image);
-      POname (clReleaseMemObject) (image);
+      pocl_release_owned (POCL_RELEASE_MEM, image);
     }
   POCL_MEM_FREE (mapping_info);
   POCL_MEM_FREE (cmd);
