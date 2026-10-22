@@ -41,7 +41,7 @@ POname(clCreateProgramWithSource)(cl_context context,
 
   POCL_GOTO_ERROR_COND ((!IS_CL_OBJECT_VALID (context)), CL_INVALID_CONTEXT);
 
-  POCL_GOTO_ERROR_COND((count == 0), CL_INVALID_VALUE);
+  POCL_GOTO_ERROR_COND((count == 0 || strings == NULL), CL_INVALID_VALUE);
 
   program = (cl_program) calloc(1, sizeof(struct _cl_program));
   if (program == NULL)
@@ -54,25 +54,26 @@ POname(clCreateProgramWithSource)(cl_context context,
 
   for (i = 0; i < count; ++i)
     {
-      POCL_GOTO_ERROR_ON((strings[i] == NULL), CL_INVALID_VALUE,
-          "strings[%i] is NULL\n", i);
+      POCL_GOTO_ERROR_ON ((strings[i] == NULL), CL_INVALID_VALUE,
+                          "strings[%i] is NULL\n", i);
 
-      if (lengths == NULL)
-        size += strlen(strings[i]);
-      else if (lengths[i] == 0)
-        size += strlen(strings[i]);
-      else
-        size += lengths[i];
+      size_t length = (lengths == NULL || lengths[i] == 0)
+                          ? strlen (strings[i])
+                          : lengths[i];
+      POCL_GOTO_ERROR_COND ((length > SIZE_MAX - size - 1),
+                            CL_OUT_OF_HOST_MEMORY);
+      size += length;
     }
 
-  source = (char *) malloc(size + 1);
+  source = (char *)malloc (size + 1);
   if (source == NULL)
-  {
-    errcode = CL_OUT_OF_HOST_MEMORY;
-    goto ERROR;
-  }
+    {
+      errcode = CL_OUT_OF_HOST_MEMORY;
+      goto ERROR;
+    }
 
   program->source = source;
+  program->source_size = size;
 
   for (i = 0; i < count; ++i)
     {

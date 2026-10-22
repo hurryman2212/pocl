@@ -724,6 +724,15 @@ pocl_create_command_struct (_cl_command_node **cmd,
   if (errcode != CL_SUCCESS)
     goto ERROR;
   (*event)->command_type = command_type;
+  (*cmd)->device = command_queue->device;
+  (*event)->command = *cmd;
+  if (command_queue->device->ops->init_command)
+    {
+      errcode = command_queue->device->ops->init_command (
+          *cmd, command_queue, num_events, wait_list);
+      if (errcode != CL_SUCCESS)
+        goto ERROR;
+    }
 
   /* If host application wants this commands event
      one reference for the host and one for the runtime/driver. */
@@ -756,7 +765,22 @@ pocl_create_command_struct (_cl_command_node **cmd,
   return CL_SUCCESS;
 
 ERROR:
-  pocl_mem_manager_free_command (*cmd);
+  if (event && *event)
+    {
+      cl_event failed = *event;
+      failed->command = NULL;
+      failed->status = CL_COMPLETE;
+      pocl_mem_manager_free_command (*cmd);
+      *cmd = NULL;
+      pocl_release_event_owned (failed);
+      if (event_p)
+        *event_p = NULL;
+    }
+  else
+    {
+      pocl_mem_manager_free_command (*cmd);
+      *cmd = NULL;
+    }
   return errcode;
 }
 

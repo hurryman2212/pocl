@@ -23,6 +23,7 @@
 */
 
 #include "pocl_cl.h"
+#include "pocl_util.h"
 #include "utlist.h"
 
 #ifdef __cplusplus
@@ -66,16 +67,19 @@ cl_event pocl_mem_manager_new_event ();
 #define pocl_mem_manager_free_command(cmd)                                    \
   if ((cmd))                                                                  \
     {                                                                         \
+      if ((cmd)->driver_data && (cmd)->device                                 \
+          && (cmd)->device->ops->free_command)                                \
+        (cmd)->device->ops->free_command (cmd);                               \
       if ((cmd)->buffered)                                                    \
         {                                                                     \
           POCL_MEM_FREE ((cmd)->sync.syncpoint.sync_point_wait_list);         \
         }                                                                     \
       pocl_buffer_migration_info *mi, *tmp;                                   \
       LL_FOREACH_SAFE ((cmd)->migr_infos, mi, tmp)                            \
-        {                                                                     \
-          POname (clReleaseMemObject (mi->buffer));                           \
-          POCL_MEM_FREE (mi);                                                 \
-        }                                                                     \
+      {                                                                       \
+        pocl_release_owned (POCL_RELEASE_MEM, mi->buffer);                    \
+        POCL_MEM_FREE (mi);                                                   \
+      }                                                                       \
     }                                                                         \
   POCL_MEM_FREE ((cmd));
 
