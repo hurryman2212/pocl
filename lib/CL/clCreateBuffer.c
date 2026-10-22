@@ -56,7 +56,7 @@ pocl_create_memobject (cl_context context,
   if (flags & CL_MEM_DEVICE_PRIVATE_ADDRESS_EXT)
     {
       POCL_GOTO_ERROR_ON (
-        context->no_devices_support_bda, CL_INVALID_DEVICE,
+        context->no_devices_support_bda && !host_ptr_is_svm, CL_INVALID_DEVICE,
         "Requested buffer_device_address allocation, but none of devices "
         "in the context supports the 'cl_ext_buffer_device_address' "
         "extension.");
@@ -211,7 +211,9 @@ pocl_create_memobject (cl_context context,
           if (mem->device_ptrs[dev->global_mem_id].mem_ptr == NULL)
             {
               err = dev->ops->alloc_mem_obj (dev, mem, host_ptr);
-              ptr = mem->device_ptrs[dev->global_mem_id].mem_ptr;
+              ptr = mem->device_ptrs[dev->global_mem_id].device_addr;
+              if (ptr == NULL)
+                ptr = mem->device_ptrs[dev->global_mem_id].mem_ptr;
               POCL_GOTO_ERROR_ON (err != CL_SUCCESS, CL_OUT_OF_RESOURCES,
                                   "Out of device memory?");
 

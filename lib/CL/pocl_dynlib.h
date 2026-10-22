@@ -65,6 +65,11 @@ POCL_EXPORT
 void *pocl_dynlib_symbol_address (void *dynlib_handle,
                                   const char *symbol_name);
 
+/** Resolve an optional extension without logging missing-symbol errors. */
+POCL_EXPORT
+void *pocl_dynlib_symbol_address_optional (void *dynlib_handle,
+                                           const char *symbol_name);
+
 /**
  * Returns the pathname of the library of where the given address was
  * loaded

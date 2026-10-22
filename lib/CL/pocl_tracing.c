@@ -49,14 +49,21 @@ static uint8_t event_trace_filter = 0xF;
 
 static const struct pocl_event_tracer *event_tracer = NULL;
 
+/* Called with event locked; tracing never publishes completion callbacks. */
+void
+pocl_trace_event (cl_event event, int status)
+{
+  unsigned filter_status = status < CL_COMPLETE ? CL_COMPLETE : status;
+  if (event_tracer && event_tracer->event_updated && filter_status <= CL_QUEUED
+      && ((1u << filter_status) & event_trace_filter))
+    event_tracer->event_updated (event, status);
+}
+
 /* Called with event locked, and must also return with a locked event. */
 void
 pocl_event_updated (cl_event event, int status)
 {
-  if (event_tracer && event_tracer->event_updated
-      && ((1 << status) & event_trace_filter))
-    event_tracer->event_updated (event, status);
-
+  pocl_trace_event (event, status);
   if (event->callback_list)
     pocl_event_cb_push (event, status);
 }
@@ -256,7 +263,8 @@ text_tracer_event_updated (cl_event event, int status)
         case CL_COMMAND_MAP_BUFFER:
           text_size = sprintf (
             cur_buf, "MEM ID %" PRIu64 " | size=%" PRIuS "\n",
-            node->command.map.buffer->id, node->command.map.mapping->size);
+            node->command.map.buffer->id,
+            node->command.map.mapping ? node->command.map.mapping->size : 0);
           break;
 
         case CL_COMMAND_UNMAP_MEM_OBJECT:

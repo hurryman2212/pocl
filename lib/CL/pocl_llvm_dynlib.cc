@@ -64,6 +64,10 @@ void *pocl_dynlib_symbol_address(void *, const char *SymbolName) {
   return DynamicLibrary::SearchForAddressOfSymbol(SymbolName);
 }
 
+void *pocl_dynlib_symbol_address_optional(void *, const char *SymbolName) {
+  return DynamicLibrary::SearchForAddressOfSymbol(SymbolName);
+}
+
 const char *pocl_dynlib_pathname(void *Address) {
 #ifdef _WIN32
   // Look up the module handle from the address

@@ -63,7 +63,7 @@ pocl_usm_alloc (unsigned alloc_type, cl_context context, cl_device_id device,
                       "None of the devices in this context is USM-capable\n");
 
   POCL_GOTO_ERROR_COND ((!IS_CL_OBJECT_VALID (device)), CL_INVALID_DEVICE);
-  POCL_GOTO_ERROR_ON ((device->ops->usm_alloc == NULL),
+  POCL_GOTO_ERROR_ON ((device->ops->usm_alloc == NULL && device->ops->alloc_pointer == NULL),
                       CL_INVALID_OPERATION,
                       "The device in argument is not USM-capable\n");
 
@@ -129,7 +129,9 @@ pocl_usm_alloc (unsigned alloc_type, cl_context context, cl_device_id device,
   POCL_GOTO_ERROR_ON ((p > 1), CL_INVALID_VALUE,
                       "aligment argument must be a power of 2\n");
 
-  ptr = device->ops->usm_alloc (device, alloc_type, flags, size, &errcode);
+  ptr = device->ops->alloc_pointer
+      ? device->ops->alloc_pointer (device, context, alloc_type, flags, size, alignment, &errcode)
+      : device->ops->usm_alloc (device, alloc_type, flags, size, &errcode);
   if (errcode != CL_SUCCESS)
     goto ERROR;
   POCL_GOTO_ERROR_ON ((ptr == NULL), CL_OUT_OF_RESOURCES,
@@ -152,7 +154,10 @@ pocl_usm_alloc (unsigned alloc_type, cl_context context, cl_device_id device,
 
   if (!inserted) {
       POCL_MEM_FREE (item);
-      device->ops->usm_free (device, ptr);
+      if (device->ops->free_pointer)
+        device->ops->free_pointer (device, context, ptr, CL_FALSE, CL_TRUE);
+      else
+        device->ops->usm_free (device, ptr);
       goto ERROR;
   }
 
@@ -170,7 +175,10 @@ pocl_usm_alloc (unsigned alloc_type, cl_context context, cl_device_id device,
       POCL_LOCK_OBJ (context);
       pocl_raw_ptr_set_erase (context->raw_ptrs, item);
       POCL_UNLOCK_OBJ (context);
-      device->ops->usm_free (device, ptr);
+      if (device->ops->free_pointer)
+        device->ops->free_pointer (device, context, ptr, CL_FALSE, CL_TRUE);
+      else
+        device->ops->usm_free (device, ptr);
       POCL_MSG_ERR ("Failed to allocate memory a shadow cl_mem object.\n");
       return NULL;
     }

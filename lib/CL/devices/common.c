@@ -748,11 +748,9 @@ pocl_exec_command (_cl_command_node *node)
     case CL_COMMAND_SVM_FREE:
       pocl_update_event_running (event);
       if (cmd->svm_free.pfn_free_func)
-        cmd->svm_free.pfn_free_func(
-           cmd->svm_free.queue,
-           cmd->svm_free.num_svm_pointers,
-           cmd->svm_free.svm_pointers,
-           cmd->svm_free.data);
+        cmd->svm_free.pfn_free_func (
+          cmd->svm_free.queue, cmd->svm_free.num_svm_pointers,
+          cmd->svm_free.svm_pointers, cmd->svm_free.data);
       else
         for (i = 0; i < cmd->svm_free.num_svm_pointers; i++)
           POname (clSVMFree) (event->context, cmd->svm_free.svm_pointers[i]);

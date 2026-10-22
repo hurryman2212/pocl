@@ -89,17 +89,39 @@ pocl_mem_free_intel (cl_context context, void *usm_pointer, cl_bool blocking)
   POCL_LOCK_OBJ (context);
   pocl_raw_ptr *item
     = pocl_raw_ptr_set_lookup_with_vm_ptr (context->raw_ptrs, usm_pointer);
-  pocl_raw_ptr_set_remove (context->raw_ptrs, item);
-  /* The shadow may outlive this call; its range is free for reuse now. */
-  if (item && item->shadow_cl_mem)
-    pocl_raw_ptr_set_erase_all_by_shadow_mem (context->raw_ptrs,
-                                              item->shadow_cl_mem);
+  if (item
+      && (item->vm_ptr != usm_pointer || item->kind != POCL_RAW_PTR_INTEL_USM))
+    item = NULL;
+  cl_device_id owner = item ? item->device : NULL;
+  if (item && !owner->ops->free_pointer)
+    {
+      pocl_raw_ptr_set_remove (context->raw_ptrs, item);
+      /* The shadow may outlive this call; its range is free for reuse now. */
+      if (item->shadow_cl_mem)
+        pocl_raw_ptr_set_erase_all_by_shadow_mem (context->raw_ptrs,
+                                                  item->shadow_cl_mem);
+    }
   POCL_UNLOCK_OBJ (context);
   POCL_RETURN_ERROR_ON (
       (item == NULL), CL_INVALID_VALUE,
       "Can't find pointer in list of allocated USM pointers");
 
-  if (blocking == CL_FALSE)
+  if (owner->ops->free_pointer)
+    {
+      /* The driver detaches quiescent shadow storage while preserving its CL
+         metadata. Failed explicit free keeps the pointer/shadow for retry. */
+      cl_int status = owner->ops->free_pointer (owner, context, usm_pointer,
+                                                blocking, CL_FALSE);
+      if (status != CL_SUCCESS)
+        return status;
+      POCL_LOCK_OBJ (context);
+      pocl_raw_ptr_set_remove (context->raw_ptrs, item);
+      if (item->shadow_cl_mem)
+        pocl_raw_ptr_set_erase_all_by_shadow_mem (context->raw_ptrs,
+                                                  item->shadow_cl_mem);
+      POCL_UNLOCK_OBJ (context);
+    }
+  else if (blocking == CL_FALSE)
     {
       item->device->ops->usm_free (item->device, usm_pointer);
     }

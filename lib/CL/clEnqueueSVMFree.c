@@ -72,22 +72,20 @@ POname(clEnqueueSVMFree) (cl_command_queue command_queue,
 
   _cl_command_node *cmd = NULL;
 
-  errcode
-    = pocl_create_command (&cmd, command_queue, CL_COMMAND_SVM_FREE, event,
-                           num_events_in_wait_list, event_wait_list, NULL);
-
+  _cl_command_t payload = { 0 };
+  payload.svm_free.num_svm_pointers = num_svm_pointers;
+  payload.svm_free.svm_pointers = svm_pointers_copy;
+  payload.svm_free.queue = command_queue;
+  payload.svm_free.data = user_data;
+  payload.svm_free.pfn_free_func = pfn_free_func;
+  errcode = pocl_create_command_with_payload (
+      &cmd, command_queue, CL_COMMAND_SVM_FREE, event,
+      num_events_in_wait_list, event_wait_list, NULL, &payload);
   if (errcode != CL_SUCCESS)
     {
-      POCL_MEM_FREE(cmd);
       POCL_MEM_FREE (svm_pointers_copy);
       return errcode;
     }
-
-  cmd->command.svm_free.num_svm_pointers = num_svm_pointers;
-  cmd->command.svm_free.svm_pointers = svm_pointers_copy;
-  cmd->command.svm_free.queue = command_queue;
-  cmd->command.svm_free.data = user_data;
-  cmd->command.svm_free.pfn_free_func = pfn_free_func;
 
   pocl_command_enqueue(command_queue, cmd);
 

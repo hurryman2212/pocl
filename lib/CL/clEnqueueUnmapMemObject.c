@@ -97,14 +97,12 @@ POname(clEnqueueUnmapMemObject)(cl_command_queue command_queue,
     num_events_in_wait_list, event_wait_list,
     pocl_append_unique_migration_info (NULL, memobj, rdonly));
 
-  /* Release the "mapping reference" which keeps the buffer alive until the
-     mapping is on. The command execution should also retain/release. */
-  POCL_UNUSED
-  int newrefc;
-  POCL_RELEASE_OBJECT (memobj, newrefc);
-
   if (errcode != CL_SUCCESS)
     goto ERROR;
+
+  /* Transfer the mapping owner reference only after admission succeeds. */
+  POCL_UNUSED int newrefc;
+  POCL_RELEASE_OBJECT (memobj, newrefc);
 
   cmd->command.unmap.mapping = mapping;
   cmd->command.unmap.buffer = memobj;
@@ -114,6 +112,9 @@ POname(clEnqueueUnmapMemObject)(cl_command_queue command_queue,
   return CL_SUCCESS;
 
 ERROR:
+  POCL_LOCK_OBJ (memobj);
+  mapping->unmap_requested = 0;
+  POCL_UNLOCK_OBJ (memobj);
   POCL_MEM_FREE(cmd);
   return errcode;
 }

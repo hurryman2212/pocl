@@ -207,6 +207,9 @@ typedef struct
   /* The launch data that can be passed to the kernel execution environment. */
   struct pocl_context pc;
   struct pocl_argument *arguments;
+  /* Immutable execution-info pointer snapshot for this enqueue. */
+  void **indirect_pointers;
+  size_t indirect_pointer_count;
   /* Can be used to store/cache arbitrary device-specific data. */
   void *device_data;
   /* If set to 1, disallow any work-group function specialization. */
@@ -429,6 +432,7 @@ typedef struct
   unsigned num_svm_pointers;
   size_t *sizes;
   void **svm_pointers;
+  cl_mem_migration_flags flags;
 } _cl_command_svm_migrate;
 
 typedef struct
