@@ -210,7 +210,48 @@ if(ENABLE_SIGUSR2_HANDLER)
   list(APPEND POCL_DEVICES_SOURCES signal_handlers.c)
 endif()
 
+set(POCL_EXTERNAL_DRIVER_ENTRIES "")
+set(pocl_external_driver_names "")
+foreach(driver IN LISTS POCL_EXTERNAL_DRIVERS)
+  string(LENGTH "${driver}" driver_length)
+  if(NOT "${driver}" MATCHES "^[A-Za-z_][A-Za-z0-9_]*$" OR driver_length
+                                                           GREATER 32)
+    message(
+      FATAL_ERROR
+        "External driver names must be C identifiers of 1 to 32 characters: '${driver}'"
+    )
+  endif()
+  if("${driver}" IN_LIST pocl_external_driver_names)
+    message(FATAL_ERROR "Duplicate external driver: '${driver}'")
+  endif()
+  foreach(
+    builtin IN
+    ITEMS "basic;BUILD_BASIC"
+          "pthread;BUILD_PTHREAD"
+          "ttasim;TCE_AVAILABLE"
+          "tbb;BUILD_TBB"
+          "hsa;BUILD_HSA"
+          "cuda;BUILD_CUDA"
+          "almaif;BUILD_ALMAIF"
+          "proxy;BUILD_PROXY"
+          "vulkan;BUILD_VULKAN"
+          "level0;BUILD_LEVEL0"
+          "remote;BUILD_REMOTE_CLIENT")
+    list(GET builtin 0 builtin_name)
+    list(GET builtin 1 builtin_flag)
+    if("${driver}" STREQUAL "${builtin_name}" AND ${builtin_flag})
+      message(FATAL_ERROR "External driver '${driver}' is already built in")
+    endif()
+  endforeach()
+  list(APPEND pocl_external_driver_names "${driver}")
+  string(APPEND POCL_EXTERNAL_DRIVER_ENTRIES
+         "POCL_EXTERNAL_DRIVER(${driver})\n")
+endforeach()
+configure_file(pocl_external_drivers.h.in pocl_external_drivers.h @ONLY)
+
 add_library("pocl-devices" OBJECT ${POCL_DEVICES_SOURCES})
+target_include_directories(pocl-devices PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+
 if(HAVE_LIBXSMM) # for includedir flags
   target_link_libraries("pocl-devices" PRIVATE PkgConfig::LIBXSMM)
 endif()

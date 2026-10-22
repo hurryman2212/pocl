@@ -283,6 +283,13 @@ option(POCL_DEBUG_MESSAGES
   ON)
 
 option(ENABLE_LOADABLE_DRIVERS "Enable drivers to be dlopen()-ed at pocl runtime, instead of being linked into libpocl" ON)
+set(POCL_EXTERNAL_DRIVERS
+    ""
+    CACHE STRING
+          "Semicolon-separated names of external loadable device drivers")
+if(NOT "${POCL_EXTERNAL_DRIVERS}" STREQUAL "" AND NOT ENABLE_LOADABLE_DRIVERS)
+  message(FATAL_ERROR "POCL_EXTERNAL_DRIVERS requires ENABLE_LOADABLE_DRIVERS")
+endif()
 
 option(ENABLE_HSA "Enable the HSA base profile runtime device driver" OFF)
 

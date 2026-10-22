@@ -124,6 +124,15 @@ CMake options
 For multiple-item options like KERNELLIB_HOST_CPU_VARIANTS,
 use ";" as separator (you'll have to escape it for bash).
 
+- ``-DPOCL_EXTERNAL_DRIVERS=<names>`` registers additional loadable drivers
+  implemented outside the PoCL source tree. The semicolon-separated list is
+  empty by default and requires ``ENABLE_LOADABLE_DRIVERS=ON`` when nonempty.
+  Names must be unique C identifiers of at most 32 characters and must not
+  duplicate an enabled built-in driver. A driver named ``example`` uses the
+  existing library naming convention, such as ``libpocl-devices-example.so``
+  on Linux, and exports ``pocl_example_init_device_ops``. Build external
+  drivers against the same PoCL headers as the provider.
+
 - ``-DWITH_LLVM_CONFIG=<path-to-llvm-config>``
   **IMPORTANT** Path to a llvm-config binary. This is one of
   the ways to tell PoCL which LLVM installation it should use.
